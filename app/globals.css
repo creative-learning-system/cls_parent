@@ -1,0 +1,264 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+/* ─── Typography ─────────────────────────────────────────── */
+@theme inline {
+  --font-sans: var(--font-inter);
+  --font-heading: var(--font-dm-sans);
+  --font-mono: ui-monospace, "Cascadia Code", "Source Code Pro", Menlo, monospace;
+
+  /* ─── Brand palette (teal/green from Figma) ──────────────── */
+  /* Primary — teal green */
+  --color-brand:           oklch(0.65 0.15 168);   /* #2EC4A0 ish */
+  --color-brand-light:     oklch(0.88 0.08 168);   /* soft teal tint */
+  --color-brand-dark:      oklch(0.48 0.14 168);   /* deep teal */
+  --color-brand-fg:        oklch(1 0 0);            /* white on brand */
+
+  /* Accent — warm amber (notification/warning badges) */
+  --color-amber:           oklch(0.78 0.16 75);
+  --color-amber-light:     oklch(0.95 0.07 75);
+  --color-amber-fg:        oklch(0.25 0 0);
+
+  /* Success green */
+  --color-success:         oklch(0.68 0.17 145);
+  --color-success-light:   oklch(0.93 0.06 145);
+
+  /* Danger */
+  --color-danger:          oklch(0.60 0.22 25);
+  --color-danger-light:    oklch(0.94 0.06 25);
+
+  /* ─── Semantic tokens — Light ────────────────────────────── */
+  --color-background:      var(--background);
+  --color-foreground:      var(--foreground);
+  --color-card:            var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover:         var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary:         var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary:       var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted:           var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent:          var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive:     var(--destructive);
+  --color-border:          var(--border);
+  --color-input:           var(--input);
+  --color-ring:            var(--ring);
+
+  /* ─── Radius scale ───────────────────────────────────────── */
+  --radius-xs:  0.25rem;
+  --radius-sm:  0.375rem;
+  --radius-md:  0.625rem;
+  --radius-lg:  0.875rem;
+  --radius-xl:  1.25rem;
+  --radius-2xl: 1.75rem;
+  --radius-full: 9999px;
+
+  /* ─── Shadow scale ───────────────────────────────────────── */
+  --shadow-card: 0 1px 3px 0 rgb(0 0 0 / 0.06), 0 1px 2px -1px rgb(0 0 0 / 0.04);
+  --shadow-card-hover: 0 4px 12px 0 rgb(0 0 0 / 0.08), 0 2px 4px -1px rgb(0 0 0 / 0.04);
+  --shadow-modal: 0 20px 60px -10px rgb(0 0 0 / 0.15);
+
+  /* ─── Sidebar tokens ─────────────────────────────────────── */
+  --color-sidebar:                  var(--sidebar);
+  --color-sidebar-foreground:       var(--sidebar-foreground);
+  --color-sidebar-primary:          var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent:           var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border:           var(--sidebar-border);
+  --color-sidebar-ring:             var(--sidebar-ring);
+}
+
+/* ─── Light mode ─────────────────────────────────────────── */
+:root {
+  /* Backgrounds */
+  --background:        oklch(0.975 0.004 168);   /* very soft teal-tinted white */
+  --foreground:        oklch(0.15 0.01 240);      /* near-black, slightly cool */
+
+  /* Cards */
+  --card:              oklch(1 0 0);
+  --card-foreground:   oklch(0.15 0.01 240);
+
+  /* Popover */
+  --popover:           oklch(1 0 0);
+  --popover-foreground: oklch(0.15 0.01 240);
+
+  /* Primary = brand teal */
+  --primary:           oklch(0.65 0.15 168);
+  --primary-foreground: oklch(1 0 0);
+
+  /* Secondary = soft teal tint */
+  --secondary:         oklch(0.93 0.04 168);
+  --secondary-foreground: oklch(0.35 0.08 168);
+
+  /* Muted */
+  --muted:             oklch(0.95 0.005 240);
+  --muted-foreground:  oklch(0.52 0.02 240);
+
+  /* Accent */
+  --accent:            oklch(0.93 0.04 168);
+  --accent-foreground: oklch(0.35 0.08 168);
+
+  /* Destructive */
+  --destructive:       oklch(0.60 0.22 25);
+
+  /* Borders & inputs */
+  --border:            oklch(0.90 0.01 240);
+  --input:             oklch(0.92 0.01 240);
+  --ring:              oklch(0.65 0.15 168);
+
+  /* Radius base */
+  --radius: 0.75rem;
+
+  /* Sidebar */
+  --sidebar:                    oklch(1 0 0);
+  --sidebar-foreground:         oklch(0.15 0.01 240);
+  --sidebar-primary:            oklch(0.65 0.15 168);
+  --sidebar-primary-foreground: oklch(1 0 0);
+  --sidebar-accent:             oklch(0.93 0.04 168);
+  --sidebar-accent-foreground:  oklch(0.35 0.08 168);
+  --sidebar-border:             oklch(0.90 0.01 240);
+  --sidebar-ring:               oklch(0.65 0.15 168);
+}
+
+/* ─── Dark mode ──────────────────────────────────────────── */
+.dark {
+  /* Backgrounds — deep navy-slate, not pure black */
+  --background:        oklch(0.14 0.015 240);
+  --foreground:        oklch(0.94 0.005 240);
+
+  /* Cards — slightly elevated */
+  --card:              oklch(0.19 0.015 240);
+  --card-foreground:   oklch(0.94 0.005 240);
+
+  /* Popover */
+  --popover:           oklch(0.19 0.015 240);
+  --popover-foreground: oklch(0.94 0.005 240);
+
+  /* Primary — slightly brighter teal in dark */
+  --primary:           oklch(0.70 0.15 168);
+  --primary-foreground: oklch(0.10 0.01 168);
+
+  /* Secondary */
+  --secondary:         oklch(0.24 0.02 240);
+  --secondary-foreground: oklch(0.85 0.01 240);
+
+  /* Muted */
+  --muted:             oklch(0.24 0.015 240);
+  --muted-foreground:  oklch(0.60 0.01 240);
+
+  /* Accent */
+  --accent:            oklch(0.28 0.04 168);
+  --accent-foreground: oklch(0.85 0.05 168);
+
+  /* Destructive */
+  --destructive:       oklch(0.65 0.20 25);
+
+  /* Borders & inputs */
+  --border:            oklch(1 0 0 / 8%);
+  --input:             oklch(1 0 0 / 10%);
+  --ring:              oklch(0.70 0.15 168);
+
+  /* Sidebar */
+  --sidebar:                    oklch(0.17 0.015 240);
+  --sidebar-foreground:         oklch(0.94 0.005 240);
+  --sidebar-primary:            oklch(0.70 0.15 168);
+  --sidebar-primary-foreground: oklch(0.10 0.01 168);
+  --sidebar-accent:             oklch(0.24 0.02 240);
+  --sidebar-accent-foreground:  oklch(0.85 0.01 240);
+  --sidebar-border:             oklch(1 0 0 / 8%);
+  --sidebar-ring:               oklch(0.70 0.15 168);
+}
+
+/* ─── Base layer ─────────────────────────────────────────── */
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+
+  /* Heading font */
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-dm-sans), var(--font-inter), sans-serif;
+    @apply font-semibold tracking-tight text-foreground;
+  }
+
+  /* Typography scale */
+  h1 { @apply text-4xl leading-tight; }
+  h2 { @apply text-3xl leading-snug; }
+  h3 { @apply text-2xl leading-snug; }
+  h4 { @apply text-xl leading-normal; }
+  h5 { @apply text-lg leading-normal; }
+  h6 { @apply text-base leading-normal; }
+
+  p {
+    @apply text-base leading-relaxed text-muted-foreground;
+  }
+
+  /* Smooth scrolling */
+  html {
+    scroll-behavior: smooth;
+  }
+
+  /* Focus ring */
+  :focus-visible {
+    @apply outline-2 outline-offset-2 outline-ring;
+  }
+}
+
+/* ─── Utility classes ────────────────────────────────────── */
+@layer utilities {
+  /* Brand gradient */
+  .gradient-brand {
+    background: linear-gradient(135deg, oklch(0.65 0.15 168), oklch(0.58 0.17 195));
+  }
+
+  /* Subtle card surface */
+  .surface-card {
+    @apply bg-card rounded-xl border border-border shadow-[var(--shadow-card)];
+  }
+
+  /* Glassy card for dark mode */
+  .surface-glass {
+    @apply bg-card/80 backdrop-blur-md rounded-xl border border-border/50;
+  }
+
+  /* Badge variants */
+  .badge-brand {
+    @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium;
+    background: oklch(0.88 0.08 168);
+    color: oklch(0.40 0.12 168);
+  }
+  .dark .badge-brand {
+    background: oklch(0.28 0.06 168);
+    color: oklch(0.80 0.10 168);
+  }
+
+  .badge-amber {
+    @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium;
+    background: oklch(0.95 0.07 75);
+    color: oklch(0.45 0.14 75);
+  }
+
+  .badge-success {
+    @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium;
+    background: oklch(0.93 0.06 145);
+    color: oklch(0.40 0.14 145);
+  }
+
+  /* Text utilities */
+  .text-brand { color: oklch(0.65 0.15 168); }
+  .dark .text-brand { color: oklch(0.72 0.14 168); }
+
+  .text-balance { text-wrap: balance; }
+}
