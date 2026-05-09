@@ -1,21 +1,22 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles } from "lucide-react";
 
 export function LoadingScreen() {
-  // mounted gate — never render on the server
+  const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [visible, setVisible] = useState(true);
 
   useEffect(() => {
     setMounted(true);
-    const timer = setTimeout(() => setVisible(false), 1800);
-    return () => clearTimeout(timer);
-  }, []);
+    // After progress bar finishes, fade out then redirect to login
+    const hideTimer = setTimeout(() => setVisible(false), 1800);
+    const navTimer  = setTimeout(() => router.push("/login"), 2350);
+    return () => { clearTimeout(hideTimer); clearTimeout(navTimer); };
+  }, [router]);
 
-  // Don't render anything until we're on the client
   if (!mounted) return null;
 
   return (
@@ -28,17 +29,15 @@ export function LoadingScreen() {
           transition={{ duration: 0.5, ease: "easeInOut" }}
           className="fixed inset-0 z-[9999] flex flex-col items-center justify-center gap-6 bg-background"
         >
-          {/* Logo mark */}
           <motion.div
             initial={{ scale: 0.7, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ duration: 0.5, ease: "easeOut" }}
-            className="flex h-16 w-16 items-center justify-center rounded-2xl gradient-brand shadow-lg"
+            className="flex h-16 w-16 items-center justify-center rounded-2xl gradient-brand shadow-lg overflow-hidden"
           >
-            <Sparkles className="h-8 w-8 text-white" />
+            <img src="/favicon.ico" alt="Creative Learning" className="h-11 w-11 object-contain" />
           </motion.div>
 
-          {/* Brand name */}
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -56,7 +55,6 @@ export function LoadingScreen() {
             </span>
           </motion.div>
 
-          {/* Progress bar */}
           <div className="h-0.5 w-40 overflow-hidden rounded-full bg-border">
             <motion.div
               className="h-full rounded-full gradient-brand"
