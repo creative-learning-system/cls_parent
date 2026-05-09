@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Inter, DM_Sans } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Navbar } from "@/components/navbar";
+import { Footer } from "@/components/footer";
+import { LoadingScreen } from "@/components/loading-screen";
 import "./globals.css";
 
 const inter = Inter({
@@ -17,8 +19,8 @@ const dmSans = DM_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "Creative Learning",
-  description: "A smart learning platform for students and parents",
+  title: "Creative Learning — Parent Dashboard",
+  description: "Track and support your children's learning journey from one place.",
 };
 
 export default function RootLayout({
@@ -32,13 +34,23 @@ export default function RootLayout({
       className={`${inter.variable} ${dmSans.variable} h-full antialiased`}
       suppressHydrationWarning
     >
-      <body className="min-h-full flex flex-col font-sans">
+      <body className="min-h-screen flex flex-col font-sans bg-background text-foreground">
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
+
+          {/* Full-screen loading overlay — client only */}
+          <LoadingScreen />
+
+          {/* Top navbar — sticky, shared across all pages */}
           <Navbar />
-          {/* pb-16 gives space for the mobile bottom tab bar */}
-          <main className="flex-1 pb-16 md:pb-0">
+
+          {/* Page content */}
+          <main className="flex-1">
             {children}
           </main>
+
+          {/* Footer — hidden on mobile (bottom tab bar takes its place) */}
+          <Footer />
+
         </ThemeProvider>
       </body>
     </html>
