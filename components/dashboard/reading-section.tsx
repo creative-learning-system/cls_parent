@@ -1,9 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence, type Variants } from "framer-motion";
 import { BookOpen, FileText, ChevronDown } from "lucide-react";
 import type { Child, ReadingEntry, ReadingPart } from "@/lib/dashboard-data";
+import { getReadingReflections } from "@/lib/api";
+import { formatRelativeDate } from "@/lib/utils";
 
 const fadeUp: Variants = {
   hidden: { opacity: 0, y: 16 },
@@ -15,7 +17,7 @@ const stagger: Variants = {
 };
 
 /* ─── Single accordion part ──────────────────────────────── */
-function AccordionPart({ part, index }: { part: ReadingPart; index: number }) {
+function AccordionPart({ part, index, childName }: { part: ReadingPart; index: number; childName: string }) {
   const [open, setOpen] = useState(index === 0); // first part open by default
 
   return (
@@ -65,7 +67,7 @@ function AccordionPart({ part, index }: { part: ReadingPart; index: number }) {
 
               {/* Answer */}
               <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                {`${part.label.split(" ")[0]}'s Answer`}
+                {childName}&apos;s Answer
               </p>
               <div className="rounded-xl border border-border bg-muted/50 px-4 py-3">
                 <p className="text-sm leading-relaxed text-foreground">{part.answer}</p>
@@ -79,7 +81,7 @@ function AccordionPart({ part, index }: { part: ReadingPart; index: number }) {
 }
 
 /* ─── Single reading entry card ──────────────────────────── */
-function ReadingEntryCard({ entry, defaultOpen }: { entry: ReadingEntry; defaultOpen: boolean }) {
+function ReadingEntryCard({ entry, defaultOpen, childName }: { entry: ReadingEntry; defaultOpen: boolean; childName: string }) {
   const [open, setOpen] = useState(defaultOpen);
 
   return (
@@ -133,7 +135,7 @@ function ReadingEntryCard({ entry, defaultOpen }: { entry: ReadingEntry; default
           >
             <div className="flex flex-col gap-3 border-t border-border px-6 pb-6 pt-4">
               {entry.parts.map((part, i) => (
-                <AccordionPart key={part.id} part={part} index={i} />
+                <AccordionPart key={part.id} part={part} index={i} childName={childName} />
               ))}
             </div>
           </motion.div>
@@ -144,7 +146,31 @@ function ReadingEntryCard({ entry, defaultOpen }: { entry: ReadingEntry; default
 }
 
 /* ─── Reading section ────────────────────────────────────── */
-export function ReadingSection({ child }: { child: Child }) {
+export function ReadingSection({ child, studentId }: { child: Child; studentId: number }) {
+  const [entries, setEntries] = useState<ReadingEntry[]>(child.reading);
+  const firstName = child.name.split(" ")[0];
+
+  useEffect(() => {
+    if (Number.isNaN(studentId)) return;
+    getReadingReflections(studentId)
+      .then((data) => {
+        setEntries(
+          data.reflections.map((r) => ({
+            id:    String(r.reflection_id),
+            topic: r.topic_title,
+            date:  formatRelativeDate(r.submitted_at),
+            parts: r.parts.map((p) => ({
+              id:       String(p.part_number),
+              label:    `Part ${p.part_number}`,
+              question: p.question,
+              answer:   p.answer,
+            })),
+          })),
+        );
+      })
+      .catch(() => {});
+  }, [studentId]);
+
   return (
     <motion.div variants={stagger} initial="hidden" animate="show" className="flex flex-col gap-6">
 
@@ -157,13 +183,13 @@ export function ReadingSection({ child }: { child: Child }) {
           </h3>
         </div>
         <p className="mt-0.5 text-sm text-muted-foreground">
-          {child.name}&apos;s latest reading and what {child.id === "co" ? "she" : "he"} wrote
+          {child.name}&apos;s latest reading and what {firstName} wrote
         </p>
       </motion.div>
 
       {/* Reading entries */}
-      {child.reading.map((entry, i) => (
-        <ReadingEntryCard key={entry.id} entry={entry} defaultOpen={i === 0} />
+      {entries.map((entry, i) => (
+        <ReadingEntryCard key={entry.id} entry={entry} defaultOpen={i === 0} childName={firstName} />
       ))}
 
     </motion.div>

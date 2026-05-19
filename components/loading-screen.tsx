@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
+import { isAuthenticated } from "@/lib/auth";
 
 export function LoadingScreen() {
   const router = useRouter();
@@ -11,9 +12,9 @@ export function LoadingScreen() {
 
   useEffect(() => {
     setMounted(true);
-    // After progress bar finishes, fade out then redirect to login
+    const destination = isAuthenticated() ? "/" : "/login";
     const hideTimer = setTimeout(() => setVisible(false), 1800);
-    const navTimer  = setTimeout(() => router.push("/login"), 2350);
+    const navTimer  = setTimeout(() => router.push(destination), 2350);
     return () => { clearTimeout(hideTimer); clearTimeout(navTimer); };
   }, [router]);
 

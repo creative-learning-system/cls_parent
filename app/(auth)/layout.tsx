@@ -3,10 +3,10 @@ import Link from "next/link";
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="relative min-h-screen bg-background">
+    <div className="relative min-h-screen bg-background" suppressHydrationWarning>
 
       {/* Floating top bar — same glassmorphism style as dashboard navbar */}
-      <div className="pointer-events-none fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 py-5">
+      <div suppressHydrationWarning className="pointer-events-none fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 py-5">
         <Link
           href="/"
           className="pointer-events-auto flex items-center gap-2.5 rounded-2xl border border-white/20 bg-white/50 px-4 py-2.5 shadow-md shadow-black/5 backdrop-blur-2xl transition-opacity hover:opacity-80 dark:border-white/10 dark:bg-black/50"

@@ -1,10 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence, type Variants } from "framer-motion";
 import { CheckCircle2, TrendingDown, TrendingUp, Lightbulb, MessageSquareText, BookOpen, X, ArrowUpCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { Child, Drill, ReadingEntry } from "@/lib/dashboard-data";
+import { getReasoningSubsections, getReadingReflections } from "@/lib/api";
+import { formatRelativeDate } from "@/lib/utils";
 
 const fadeUp: Variants = {
   hidden: { opacity: 0, y: 16 },
@@ -105,6 +107,19 @@ function DrillModal({ drill, childName, onClose }: { drill: Drill; childName: st
                 {childName} was recently promoted in this drill
               </p>
             )}
+            {drill.trend && !drill.recentlyPromoted && (
+              <p className={`mt-1 flex items-center gap-1 text-xs font-medium ${
+                drill.trend === "promoted"
+                  ? "text-[oklch(0.50_0.14_145)]"
+                  : "text-[oklch(0.50_0.18_25)]"
+              }`}>
+                {drill.trend === "promoted"
+                  ? <TrendingUp className="h-3.5 w-3.5" />
+                  : <TrendingDown className="h-3.5 w-3.5" />
+                }
+                {childName} was recently {drill.trend} in this drill
+              </p>
+            )}
           </div>
         </div>
       </motion.div>
@@ -170,10 +185,51 @@ function ReadingModal({ entry, childName, onClose }: { entry: ReadingEntry; chil
 }
 
 /* ─── Home section ───────────────────────────────────────── */
-export function HomeSection({ child }: { child: Child }) {
+export function HomeSection({ child, studentId }: { child: Child; studentId: number }) {
   const [drillModal, setDrillModal]     = useState<Drill | null>(null);
   const [readingModal, setReadingModal] = useState<ReadingEntry | null>(null);
+  const [drillCategories, setDrillCategories] = useState(child.drillCategories);
+  const [readingEntries, setReadingEntries]   = useState<ReadingEntry[]>(child.reading);
   const firstName = child.name.split(" ")[0];
+
+  useEffect(() => {
+    if (Number.isNaN(studentId)) return;
+
+    getReasoningSubsections(studentId)
+      .then((data) => {
+        const toDrill = (s: typeof data.logical_reasoning[number]): Drill => ({
+          id:          String(s.subsection_id),
+          code:        s.subsection_code,
+          name:        s.subsection_name,
+          description: s.subsection_name,
+          level:       s.current_level,
+          medal:       (s.medal[0] + s.medal.slice(1).toLowerCase()) as Drill["medal"],
+        });
+        setDrillCategories([
+          { id: "logical",    name: "Logical Reasoning",    icon: "logic",      drills: data.logical_reasoning.map(toDrill) },
+          { id: "linguistic", name: "Linguistic Reasoning", icon: "linguistic", drills: data.linguistic_reasoning.map(toDrill) },
+        ]);
+      })
+      .catch(() => {});
+
+    getReadingReflections(studentId)
+      .then((data) => {
+        setReadingEntries(
+          data.reflections.map((r) => ({
+            id:    String(r.reflection_id),
+            topic: r.topic_title,
+            date:  formatRelativeDate(r.submitted_at),
+            parts: r.parts.map((p) => ({
+              id:       String(p.part_number),
+              label:    `${firstName} Part ${p.part_number}`,
+              question: p.question,
+              answer:   p.answer,
+            })),
+          })),
+        );
+      })
+      .catch(() => {});
+  }, [studentId, firstName]);
 
   return (
     <>
@@ -211,7 +267,7 @@ export function HomeSection({ child }: { child: Child }) {
 
         {/* Drill categories */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          {child.drillCategories.map((cat) => (
+          {drillCategories.map((cat) => (
             <motion.div key={cat.id} variants={fadeUp} className="surface-card p-5">
               {/* Category header */}
               <div className="mb-1 flex items-center gap-2">
@@ -246,9 +302,18 @@ export function HomeSection({ child }: { child: Child }) {
                     <p className={`text-[9px] font-semibold uppercase tracking-widest ${medalText[drill.medal]}`}>
                       {drill.medal}
                     </p>
-                    {/* Promoted dot */}
-                    {drill.recentlyPromoted && (
-                      <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-[oklch(0.65_0.15_168)]" />
+                    {/* Trend arrow — top right */}
+                    {drill.trend && (
+                      <span
+                        className={`absolute right-2 top-2 text-sm leading-none ${
+                          drill.trend === "promoted"
+                            ? "text-[oklch(0.55_0.14_145)]"
+                            : "text-[oklch(0.55_0.18_25)]"
+                        }`}
+                        title={drill.trend === "promoted" ? "Recently promoted" : "Recently demoted"}
+                      >
+                        {drill.trend === "promoted" ? "↑" : "↓"}
+                      </span>
                     )}
                   </button>
                 ))}
@@ -267,7 +332,7 @@ export function HomeSection({ child }: { child: Child }) {
             What {firstName} has been reading recently
           </p>
           <div className="flex flex-col divide-y divide-border">
-            {child.reading.map((entry) => (
+            {readingEntries.map((entry) => (
               <div key={entry.id} className="flex items-center justify-between gap-4 py-3 first:pt-0 last:pb-0">
                 <div>
                   <p className="text-sm text-foreground">

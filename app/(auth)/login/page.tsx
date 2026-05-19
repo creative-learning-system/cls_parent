@@ -1,14 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Eye, EyeOff, LogIn, Mail, Lock } from "lucide-react";
 import Link from "next/link";
-
-/* Dummy credentials */
-const DUMMY_EMAIL    = "parent@creativeleaning.com";
-const DUMMY_PASSWORD = "parent123";
+import { login, isAuthenticated } from "@/lib/auth";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 20 },
@@ -27,19 +24,27 @@ export default function LoginPage() {
   const [error, setError]       = useState("");
   const [loading, setLoading]   = useState(false);
 
+  useEffect(() => {
+    if (isAuthenticated()) router.replace("/");
+  }, [router]);
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
     setLoading(true);
 
-    await new Promise((r) => setTimeout(r, 800)); // simulate network
-
-    if (email === DUMMY_EMAIL && password === DUMMY_PASSWORD) {
-      router.push("/");
-    } else {
-      setError("Invalid email or password. Try the dummy credentials below.");
+    try {
+      const user = await login(email, password);
+      if (user.require_password_change) {
+        router.push("/change-password");
+      } else {
+        router.push("/");
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Invalid email or password.");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }
 
   return (
@@ -80,7 +85,7 @@ export default function LoginPage() {
                   autoComplete="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="parent@creativeleaning.com"
+                  placeholder="you@example.com"
                   required
                   className="w-full rounded-xl border border-border bg-muted/40 py-3 pl-10 pr-4 text-sm text-foreground placeholder:text-muted-foreground outline-none transition-colors focus:border-[oklch(0.65_0.15_168)]/60 focus:bg-card"
                 />
@@ -148,26 +153,6 @@ export default function LoginPage() {
               {loading ? "Signing in…" : "Sign in"}
             </button>
           </form>
-        </motion.div>
-
-        {/* Dummy credentials hint */}
-        <motion.div
-          variants={fadeUp}
-          className="mt-4 rounded-xl border border-border bg-muted/50 px-5 py-4"
-        >
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            Demo credentials
-          </p>
-          <div className="flex flex-col gap-1">
-            <p className="text-xs text-foreground">
-              <span className="text-muted-foreground">Email: </span>
-              <span className="font-mono font-medium">{DUMMY_EMAIL}</span>
-            </p>
-            <p className="text-xs text-foreground">
-              <span className="text-muted-foreground">Password: </span>
-              <span className="font-mono font-medium">{DUMMY_PASSWORD}</span>
-            </p>
-          </div>
         </motion.div>
       </motion.div>
     </div>

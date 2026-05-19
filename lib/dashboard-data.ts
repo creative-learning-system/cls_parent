@@ -46,12 +46,13 @@ export interface ReadingEntry {
 
 export interface Drill {
   id: string;
-  code: string;       // e.g. "OO", "MC"
-  name: string;       // e.g. "Order of Operation"
+  code: string;
+  name: string;
   description: string;
   level: number;
   medal: "Bronze" | "Silver" | "Gold";
-  recentlyPromoted?: boolean;
+  trend?: "promoted" | "demoted";   // recent level change
+  recentlyPromoted?: boolean;       // kept for modal backward compat
 }
 
 export interface DrillCategory {
@@ -129,10 +130,10 @@ export const children: Child[] = [
         name: "Logical Reasoning",
         icon: "logic",
         drills: [
-          { id: "oo", code: "OO", name: "Order of Operation",    description: "Tests how well the child handles calculation sequence and mathematical logic.",          level: 2, medal: "Silver", recentlyPromoted: true },
-          { id: "mc", code: "MC", name: "Mental Calculation",    description: "Assesses speed and accuracy in performing arithmetic operations mentally.",              level: 1, medal: "Bronze" },
+          { id: "oo", code: "OO", name: "Order of Operation",    description: "Tests how well the child handles calculation sequence and mathematical logic.",          level: 2, medal: "Silver", trend: "promoted", recentlyPromoted: true },
+          { id: "mc", code: "MC", name: "Mental Calculation",    description: "Assesses speed and accuracy in performing arithmetic operations mentally.",              level: 1, medal: "Bronze", trend: "demoted" },
           { id: "fp", code: "FP", name: "Fraction Percentages",  description: "Evaluates understanding of fractions, decimals, and percentage conversions.",           level: 2, medal: "Silver" },
-          { id: "ar", code: "AR", name: "Algebraic Reasoning",   description: "Tests ability to identify patterns and solve simple algebraic expressions.",            level: 2, medal: "Silver" },
+          { id: "ar", code: "AR", name: "Algebraic Reasoning",   description: "Tests ability to identify patterns and solve simple algebraic expressions.",            level: 2, medal: "Silver", trend: "promoted" },
           { id: "wp", code: "WP", name: "Word Problems",         description: "Measures comprehension and application of maths in real-world scenarios.",              level: 1, medal: "Bronze" },
           { id: "tc", code: "TC", name: "Time & Calendar",       description: "Checks understanding of time, dates, and duration calculations.",                       level: 2, medal: "Silver" },
         ],
@@ -143,11 +144,11 @@ export const children: Child[] = [
         icon: "linguistic",
         drills: [
           { id: "vp", code: "VP", name: "Vocabulary & Prefix",   description: "Tests knowledge of word meanings, prefixes, and suffixes in context.",                  level: 1, medal: "Bronze" },
-          { id: "gs", code: "GS", name: "Grammar & Syntax",      description: "Evaluates correct use of grammar rules and sentence construction.",                     level: 1, medal: "Bronze" },
+          { id: "gs", code: "GS", name: "Grammar & Syntax",      description: "Evaluates correct use of grammar rules and sentence construction.",                     level: 1, medal: "Bronze", trend: "demoted" },
           { id: "li", code: "LI", name: "Literary Inference",    description: "Assesses ability to draw conclusions and infer meaning from written passages.",         level: 1, medal: "Bronze" },
-          { id: "st", code: "ST", name: "Sentence Analysis",     description: "Tests understanding of sentence structure, clauses, and punctuation.",                  level: 1, medal: "Bronze" },
+          { id: "st", code: "ST", name: "Sentence Analysis",     description: "Tests understanding of sentence structure, clauses, and punctuation.",                  level: 1, medal: "Bronze", trend: "demoted" },
           { id: "es", code: "ES", name: "Essay Structure",       description: "Evaluates ability to organise ideas into coherent paragraphs and arguments.",           level: 1, medal: "Bronze" },
-          { id: "sp", code: "SP", name: "Spelling Patterns",     description: "Checks mastery of common spelling rules and irregular word forms.",                     level: 2, medal: "Silver" },
+          { id: "sp", code: "SP", name: "Spelling Patterns",     description: "Checks mastery of common spelling rules and irregular word forms.",                     level: 2, medal: "Silver", trend: "promoted" },
           { id: "oe", code: "OE", name: "Oral Expression",       description: "Measures clarity and confidence in expressing ideas verbally.",                         level: 1, medal: "Bronze" },
         ],
       },
@@ -245,10 +246,10 @@ export const children: Child[] = [
         name: "Logical Reasoning",
         icon: "logic",
         drills: [
-          { id: "oo", code: "OO", name: "Order of Operation",    description: "Tests how well the child handles calculation sequence and mathematical logic.",          level: 2, medal: "Silver" },
+          { id: "oo", code: "OO", name: "Order of Operation",    description: "Tests how well the child handles calculation sequence and mathematical logic.",          level: 2, medal: "Silver", trend: "promoted" },
           { id: "mc", code: "MC", name: "Mental Calculation",    description: "Assesses speed and accuracy in performing arithmetic operations mentally.",              level: 2, medal: "Silver" },
-          { id: "fp", code: "FP", name: "Fraction Percentages",  description: "Evaluates understanding of fractions, decimals, and percentage conversions.",           level: 3, medal: "Gold" },
-          { id: "ar", code: "AR", name: "Algebraic Reasoning",   description: "Tests ability to identify patterns and solve simple algebraic expressions.",            level: 2, medal: "Silver", recentlyPromoted: true },
+          { id: "fp", code: "FP", name: "Fraction Percentages",  description: "Evaluates understanding of fractions, decimals, and percentage conversions.",           level: 3, medal: "Gold",   trend: "promoted" },
+          { id: "ar", code: "AR", name: "Algebraic Reasoning",   description: "Tests ability to identify patterns and solve simple algebraic expressions.",            level: 2, medal: "Silver", trend: "promoted", recentlyPromoted: true },
           { id: "wp", code: "WP", name: "Word Problems",         description: "Measures comprehension and application of maths in real-world scenarios.",              level: 2, medal: "Silver" },
         ],
       },
@@ -257,10 +258,10 @@ export const children: Child[] = [
         name: "Linguistic Reasoning",
         icon: "linguistic",
         drills: [
-          { id: "vp", code: "VP", name: "Vocabulary & Prefix",   description: "Tests knowledge of word meanings, prefixes, and suffixes in context.",                  level: 2, medal: "Silver" },
+          { id: "vp", code: "VP", name: "Vocabulary & Prefix",   description: "Tests knowledge of word meanings, prefixes, and suffixes in context.",                  level: 2, medal: "Silver", trend: "promoted" },
           { id: "gs", code: "GS", name: "Grammar & Syntax",      description: "Evaluates correct use of grammar rules and sentence construction.",                     level: 2, medal: "Silver" },
-          { id: "li", code: "LI", name: "Literary Inference",    description: "Assesses ability to draw conclusions and infer meaning from written passages.",         level: 1, medal: "Bronze" },
-          { id: "st", code: "ST", name: "Sentence Analysis",     description: "Tests understanding of sentence structure, clauses, and punctuation.",                  level: 2, medal: "Silver" },
+          { id: "li", code: "LI", name: "Literary Inference",    description: "Assesses ability to draw conclusions and infer meaning from written passages.",         level: 1, medal: "Bronze", trend: "demoted" },
+          { id: "st", code: "ST", name: "Sentence Analysis",     description: "Tests understanding of sentence structure, clauses, and punctuation.",                  level: 2, medal: "Silver", trend: "promoted" },
         ],
       },
     ],
