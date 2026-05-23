@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence, type Variants } from "framer-motion";
-import { HomeIcon, Brain, BookOpen, BarChart3, MessageSquare, CheckCircle2 } from "lucide-react";
-import { children as mockChildren, type Child, type SectionKey } from "@/lib/dashboard-data";
+import { HomeIcon, Brain, BookOpen, BarChart3, MessageSquare, CheckCircle2, Users, RefreshCw } from "lucide-react";
+import { type SectionKey, type Child } from "@/lib/dashboard-data";
 import { HomeSection }        from "@/components/dashboard/home-section";
 import { MentalDrillSection } from "@/components/dashboard/mental-drill-section";
 import { ProgressSection }    from "@/components/dashboard/progress-section";
@@ -40,8 +40,8 @@ function getGreeting() {
   return                         { text: "Good night",     emoji: "🌙" };
 }
 
-/* ─── Map API child to UI Child ──────────────────────────── */
-function mapApiChild(apiChild: DashboardChild, index: number): Child {
+/* ─── Map API child → UI Child (NO mock data) ────────────── */
+function mapApiChild(apiChild: DashboardChild): Child {
   const nameParts = apiChild.full_name.trim().split(" ");
   const initials = nameParts.length >= 2
     ? `${nameParts[0][0]}${nameParts[nameParts.length - 1][0]}`.toUpperCase()
@@ -82,24 +82,30 @@ function mapApiChild(apiChild: DashboardChild, index: number): Child {
   }
 
   const primaryLevel = apiChild.reasoning_levels[0];
-
-  // Merge with a mock child if one exists at the same index (for drills, messages, etc.)
-  const mock = mockChildren[index] ?? mockChildren[0];
+  const tag = apiChild.class_info.trim().split(" ")[0] ?? "Student";
 
   return {
-    ...mock,
-    id: String(apiChild.student_id),
+    id:             String(apiChild.student_id),
     initials,
-    name: apiChild.full_name,
-    grade: apiChild.class_info,
-    level: primaryLevel?.LevelName ?? mock.level,
+    name:           apiChild.full_name,
+    grade:          apiChild.class_info,
+    level:          primaryLevel?.LevelName ?? apiChild.class_info,
+    tag,
+    tagColor:       "brand",
+    subjects:       [],
     learningStatus,
-    notifications,
     stats: [
-      { label: "Logical target",    value: compliance.LogicalTargetMet    ? "Met" : "Pending", unit: "today" },
-      { label: "Linguistic target", value: compliance.LinguisticTargetMet ? "Met" : "Pending", unit: "today" },
-      { label: "Reading reflection",value: compliance.ReadingReflectionCompleted ? "Done" : "Pending", unit: "today", highlight: compliance.ReadingReflectionCompleted },
+      { label: "Logical target",     value: compliance.LogicalTargetMet              ? "Met"  : "Pending", unit: "today" },
+      { label: "Linguistic target",  value: compliance.LinguisticTargetMet           ? "Met"  : "Pending", unit: "today" },
+      { label: "Reading reflection", value: compliance.ReadingReflectionCompleted    ? "Done" : "Pending", unit: "today", highlight: compliance.ReadingReflectionCompleted },
     ],
+    notifications,
+    progress:       { summary: "", metrics: [] },
+    drillCategories: [],
+    drillActivity:   [],
+    reading:         [],
+    teachers:        [],
+    messages:        {},
   };
 }
 
@@ -107,10 +113,33 @@ function mapApiChild(apiChild: DashboardChild, index: number): Child {
 export default function Home() {
   const { text, emoji } = getGreeting();
 
-  const [displayChildren, setDisplayChildren] = useState<Child[]>(mockChildren);
-  const [activeChildId, setActiveChildId]     = useState(mockChildren[0].id);
-  const [activeSection, setActiveSection]     = useState<SectionKey>("home");
-  const [parentName, setParentName]           = useState("Parent");
+  const [children, setChildren]           = useState<Child[]>([]);
+  const [loading, setLoading]             = useState(true);
+  const [refreshing, setRefreshing]       = useState(false);
+  const [activeChildId, setActiveChildId] = useState<string>("");
+  const [activeSection, setActiveSection] = useState<SectionKey>("home");
+  const [parentName, setParentName]       = useState("Parent");
+
+  function fetchDashboard(isRefresh = false) {
+    if (isRefresh) setRefreshing(true);
+    else setLoading(true);
+
+    getDashboard()
+      .then((data) => {
+        if (data.children.length > 0) {
+          const mapped = data.children.map(mapApiChild);
+          setChildren(mapped);
+          setActiveChildId((prev) => prev || mapped[0].id);
+        } else {
+          setChildren([]);
+        }
+      })
+      .catch(() => {})
+      .finally(() => {
+        setLoading(false);
+        setRefreshing(false);
+      });
+  }
 
   useEffect(() => {
     const user = getUser();
@@ -118,22 +147,11 @@ export default function Home() {
       const lastName = user.full_name.trim().split(" ").at(-1) ?? user.full_name;
       setParentName(lastName);
     }
-
-    getDashboard()
-      .then((data) => {
-        if (data.children.length > 0) {
-          const mapped = data.children.map((c, i) => mapApiChild(c, i));
-          setDisplayChildren(mapped);
-          setActiveChildId(mapped[0].id);
-        }
-      })
-      .catch(() => {
-        // Keep mock data on API failure
-      });
+    fetchDashboard();
   }, []);
 
-  const child = displayChildren.find((c) => c.id === activeChildId) ?? displayChildren[0];
-  const studentId = Number(child.id);
+  const child = children.find((c) => c.id === activeChildId) ?? children[0];
+  const studentId = child ? Number(child.id) : NaN;
 
   return (
     <div className="mx-auto w-full max-w-5xl px-5 pt-28 pb-14 md:px-8">
@@ -151,98 +169,160 @@ export default function Home() {
           Welcome, {parentName}
         </motion.h1>
         <motion.p variants={fadeUp} className="mt-1 text-sm text-muted-foreground">
-          Select a child to view their dashboard.
+          {loading
+            ? "Loading your children…"
+            : children.length === 0
+            ? "No children linked to your account."
+            : "Select a child to view their dashboard."}
         </motion.p>
       </motion.div>
 
       {/* ── Child tabs ─────────────────────────────────────── */}
       <div className="mb-10">
-        <p className="mb-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-          Select Child
-        </p>
-        <div className="flex gap-4 overflow-x-auto pb-1">
-          {displayChildren.map((c) => {
-            const isActive = c.id === activeChildId;
-            return (
-              <button
-                key={c.id}
-                onClick={() => { setActiveChildId(c.id); setActiveSection("home"); }}
-                className={`relative flex min-w-[220px] items-center gap-4 rounded-xl border p-5 text-left transition-all ${
-                  isActive
-                    ? "border-[oklch(0.65_0.15_168)] bg-card shadow-[var(--shadow-card-hover)]"
-                    : "border-border bg-card hover:border-[oklch(0.65_0.15_168)]/40 hover:shadow-[var(--shadow-card)]"
-                }`}
+        {(loading || children.length > 0) && (
+          <p className="mb-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            Select Child
+          </p>
+        )}
+
+        {loading ? (
+          /* Skeleton child cards */
+          <div className="flex gap-4 overflow-x-auto pb-1">
+            {[1, 2].map((i) => (
+              <div
+                key={i}
+                className="flex min-w-[220px] items-center gap-4 rounded-xl border border-border bg-card p-5 animate-pulse"
               >
-                {isActive && (
-                  <motion.span
-                    layoutId="child-active-bg"
-                    className="absolute inset-0 rounded-xl bg-[oklch(0.65_0.15_168)]/5"
-                    transition={{ type: "spring", stiffness: 380, damping: 30 }}
-                  />
-                )}
-                <div className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full gradient-brand text-sm font-bold text-white">
-                  {c.initials}
-                  {isActive && (
-                    <span className="absolute -bottom-0.5 -right-0.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-[oklch(0.65_0.15_168)] ring-2 ring-card">
-                      <CheckCircle2 className="h-2.5 w-2.5 text-white" />
-                    </span>
-                  )}
+                <div className="h-11 w-11 rounded-full bg-muted" />
+                <div className="flex flex-col gap-2 flex-1">
+                  <div className="h-3.5 w-24 rounded bg-muted" />
+                  <div className="h-3 w-16 rounded bg-muted" />
+                  <div className="h-4 w-12 rounded-full bg-muted" />
                 </div>
-                <div className="relative min-w-0">
-                  <p className="truncate text-sm font-semibold text-foreground">{c.name}</p>
-                  <p className="text-xs text-muted-foreground">{c.grade}</p>
-                  <span className={`mt-1.5 inline-block ${c.tagColor === "amber" ? "badge-amber" : "badge-brand"}`}>
-                    {c.level}
-                  </span>
-                </div>
+              </div>
+            ))}
+          </div>
+        ) : children.length === 0 ? (
+          /* No children linked */
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, ease: "easeOut" }}
+            className="flex min-h-[40vh] items-center justify-center"
+          >
+            <div className="flex max-w-sm flex-col items-center gap-5 rounded-2xl border border-border bg-card p-10 text-center shadow-[var(--shadow-card)]">
+              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-[oklch(0.65_0.15_168)]/10">
+                <Users className="h-8 w-8 text-[oklch(0.55_0.14_168)]" />
+              </div>
+              <div>
+                <h2 className="text-lg font-semibold text-foreground" style={{ fontFamily: "var(--font-dm-sans)" }}>
+                  No children linked
+                </h2>
+                <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
+                  Your account doesn&apos;t have any children linked yet. Contact your school administrator to get started.
+                </p>
+              </div>
+              <div className="w-full rounded-xl border border-[oklch(0.65_0.15_168)]/20 bg-[oklch(0.65_0.15_168)]/5 px-4 py-3 text-xs text-muted-foreground">
+                If a child was recently linked, tap the button below to check again.
+              </div>
+              <button
+                onClick={() => fetchDashboard(true)}
+                disabled={refreshing}
+                className="flex items-center gap-2 rounded-xl gradient-brand px-5 py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-60"
+              >
+                <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
+                {refreshing ? "Checking…" : "Check Again"}
               </button>
-            );
-          })}
-        </div>
+            </div>
+          </motion.div>
+        ) : (
+          <div className="flex gap-4 overflow-x-auto pb-1">
+            {children.map((c) => {
+              const isActive = c.id === activeChildId;
+              return (
+                <button
+                  key={c.id}
+                  onClick={() => { setActiveChildId(c.id); setActiveSection("home"); }}
+                  className={`relative flex min-w-[220px] items-center gap-4 rounded-xl border p-5 text-left transition-all ${
+                    isActive
+                      ? "border-[oklch(0.65_0.15_168)] bg-card shadow-[var(--shadow-card-hover)]"
+                      : "border-border bg-card hover:border-[oklch(0.65_0.15_168)]/40 hover:shadow-[var(--shadow-card)]"
+                  }`}
+                >
+                  {isActive && (
+                    <motion.span
+                      layoutId="child-active-bg"
+                      className="absolute inset-0 rounded-xl bg-[oklch(0.65_0.15_168)]/5"
+                      transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                    />
+                  )}
+                  <div className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full gradient-brand text-sm font-bold text-white">
+                    {c.initials}
+                    {isActive && (
+                      <span className="absolute -bottom-0.5 -right-0.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-[oklch(0.65_0.15_168)] ring-2 ring-card">
+                        <CheckCircle2 className="h-2.5 w-2.5 text-white" />
+                      </span>
+                    )}
+                  </div>
+                  <div className="relative min-w-0">
+                    <p className="truncate text-sm font-semibold text-foreground">{c.name}</p>
+                    <p className="text-xs text-muted-foreground">{c.grade}</p>
+                    <span className={`mt-1.5 inline-block ${c.tagColor === "amber" ? "badge-amber" : "badge-brand"}`}>
+                      {c.level}
+                    </span>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        )}
       </div>
 
-      {/* ── Section tabs ───────────────────────────────────── */}
-      <div className="mb-8 flex gap-1.5 overflow-x-auto rounded-2xl bg-muted p-1.5">
-        {sections.map(({ key, icon: Icon, label }) => {
-          const isActive = activeSection === key;
-          return (
-            <button
-              key={key}
-              onClick={() => setActiveSection(key)}
-              className={`relative flex flex-1 min-w-max items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-xs font-medium transition-colors ${
-                isActive ? "text-white" : "text-muted-foreground hover:bg-background hover:text-foreground"
-              }`}
+      {/* ── Section tabs + content (only when a child is selected) ── */}
+      {child && (
+        <>
+          <div className="mb-8 flex gap-1.5 overflow-x-auto rounded-2xl bg-muted p-1.5">
+            {sections.map(({ key, icon: Icon, label }) => {
+              const isActive = activeSection === key;
+              return (
+                <button
+                  key={key}
+                  onClick={() => setActiveSection(key)}
+                  className={`relative flex flex-1 min-w-max items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-xs font-medium transition-colors ${
+                    isActive ? "text-white" : "text-muted-foreground hover:bg-background hover:text-foreground"
+                  }`}
+                >
+                  {isActive && (
+                    <motion.span
+                      layoutId="section-pill"
+                      className="absolute inset-0 rounded-xl gradient-brand"
+                      transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                    />
+                  )}
+                  <Icon className="relative h-3.5 w-3.5" />
+                  <span className="relative">{label}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={`${activeChildId}-${activeSection}`}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.25, ease: "easeOut" }}
             >
-              {isActive && (
-                <motion.span
-                  layoutId="section-pill"
-                  className="absolute inset-0 rounded-xl gradient-brand"
-                  transition={{ type: "spring", stiffness: 380, damping: 30 }}
-                />
-              )}
-              <Icon className="relative h-3.5 w-3.5" />
-              <span className="relative">{label}</span>
-            </button>
-          );
-        })}
-      </div>
-
-      {/* ── Section content ────────────────────────────────── */}
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={`${activeChildId}-${activeSection}`}
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -6 }}
-          transition={{ duration: 0.25, ease: "easeOut" }}
-        >
-          {activeSection === "home"         && <HomeSection        child={child} studentId={studentId} />}
-          {activeSection === "mental-drill" && <MentalDrillSection child={child} studentId={studentId} />}
-          {activeSection === "reading"      && <ReadingSection     child={child} studentId={studentId} />}
-          {activeSection === "progress"     && <ProgressSection    child={child} studentId={studentId} />}
-          {activeSection === "messages"     && <MessagesSection    child={child} />}
-        </motion.div>
-      </AnimatePresence>
+              {activeSection === "home"         && <HomeSection        child={child} studentId={studentId} />}
+              {activeSection === "mental-drill" && <MentalDrillSection child={child} studentId={studentId} />}
+              {activeSection === "reading"      && <ReadingSection     child={child} studentId={studentId} />}
+              {activeSection === "progress"     && <ProgressSection    child={child} studentId={studentId} />}
+              {activeSection === "messages"     && <MessagesSection    child={child} />}
+            </motion.div>
+          </AnimatePresence>
+        </>
+      )}
 
     </div>
   );

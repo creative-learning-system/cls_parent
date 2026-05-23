@@ -11,6 +11,7 @@ import {
   type DrillAlert,
   type MentalDrillsDay,
 } from "@/lib/api";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const fadeUp: Variants = {
   hidden: { opacity: 0, y: 14 },
@@ -306,8 +307,17 @@ export function MentalDrillSection({ child, studentId }: { child: Child; student
             transition={{ duration: 0.2 }}
           >
             {loading ? (
-              <div className="flex items-center justify-center py-10">
-                <div className="h-6 w-6 animate-spin rounded-full border-2 border-[oklch(0.65_0.15_168)] border-t-transparent" />
+              <div className="flex flex-col gap-3">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3">
+                    <Skeleton className="h-4 w-4 rounded-full" />
+                    <div className="flex-1 flex flex-col gap-1.5">
+                      <Skeleton className="h-3.5 w-2/5" />
+                      <Skeleton className="h-3 w-1/4" />
+                    </div>
+                    <Skeleton className="h-5 w-16 rounded-full" />
+                  </div>
+                ))}
               </div>
             ) : (
               <PastActivity days={pastDays} />

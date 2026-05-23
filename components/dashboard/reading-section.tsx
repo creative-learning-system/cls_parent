@@ -5,6 +5,8 @@ import { motion, AnimatePresence, type Variants } from "framer-motion";
 import { BookOpen, FileText, ChevronDown } from "lucide-react";
 import type { Child, ReadingEntry, ReadingPart } from "@/lib/dashboard-data";
 import { getReadingReflections } from "@/lib/api";
+import { fetchCached } from "@/lib/cache";
+import { Skeleton } from "@/components/ui/skeleton";
 import { formatRelativeDate } from "@/lib/utils";
 
 const fadeUp: Variants = {
@@ -145,15 +147,40 @@ function ReadingEntryCard({ entry, defaultOpen, childName }: { entry: ReadingEnt
   );
 }
 
+/* ─── Reading skeleton ───────────────────────────────────── */
+function ReadingSkeleton() {
+  return (
+    <div className="flex flex-col gap-4">
+      {[1, 2].map((i) => (
+        <div key={i} className="surface-card overflow-hidden">
+          <div className="flex items-center gap-4 px-6 py-5">
+            <div className="flex-1 flex flex-col gap-2">
+              <Skeleton className="h-3 w-14" />
+              <Skeleton className="h-5 w-56" />
+              <Skeleton className="h-3 w-20" />
+            </div>
+            <Skeleton className="h-5 w-5 rounded" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 /* ─── Reading section ────────────────────────────────────── */
 export function ReadingSection({ child, studentId }: { child: Child; studentId: number }) {
-  const [entries, setEntries] = useState<ReadingEntry[]>(child.reading);
+  const [entries, setEntries]   = useState<ReadingEntry[]>([]);
+  const [loading, setLoading]   = useState(true);
   const firstName = child.name.split(" ")[0];
 
   useEffect(() => {
     if (Number.isNaN(studentId)) return;
-    getReadingReflections(studentId)
+    let cancelled = false;
+    setLoading(true);
+    setEntries([]);
+    fetchCached(`c${studentId}:reading-reflections`, () => getReadingReflections(studentId))
       .then((data) => {
+        if (cancelled) return;
         setEntries(
           data.reflections.map((r) => ({
             id:    String(r.reflection_id),
@@ -168,7 +195,9 @@ export function ReadingSection({ child, studentId }: { child: Child; studentId: 
           })),
         );
       })
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
   }, [studentId]);
 
   return (
@@ -187,10 +216,18 @@ export function ReadingSection({ child, studentId }: { child: Child; studentId: 
         </p>
       </motion.div>
 
-      {/* Reading entries */}
-      {entries.map((entry, i) => (
-        <ReadingEntryCard key={entry.id} entry={entry} defaultOpen={i === 0} childName={firstName} />
-      ))}
+      {loading ? (
+        <ReadingSkeleton />
+      ) : entries.length === 0 ? (
+        <motion.div variants={fadeUp} className="surface-card flex flex-col items-center gap-2 py-12 text-center">
+          <BookOpen className="h-8 w-8 text-muted-foreground/30" />
+          <p className="text-sm text-muted-foreground">No reading reflections yet.</p>
+        </motion.div>
+      ) : (
+        entries.map((entry, i) => (
+          <ReadingEntryCard key={entry.id} entry={entry} defaultOpen={i === 0} childName={firstName} />
+        ))
+      )}
 
     </motion.div>
   );
