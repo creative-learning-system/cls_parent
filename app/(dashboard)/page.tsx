@@ -115,6 +115,7 @@ export default function Home() {
 
   const [children, setChildren]           = useState<Child[]>([]);
   const [loading, setLoading]             = useState(true);
+  const [error, setError]                 = useState<string | null>(null);
   const [refreshing, setRefreshing]       = useState(false);
   const [activeChildId, setActiveChildId] = useState<string>("");
   const [activeSection, setActiveSection] = useState<SectionKey>("home");
@@ -123,18 +124,24 @@ export default function Home() {
   function fetchDashboard(isRefresh = false) {
     if (isRefresh) setRefreshing(true);
     else setLoading(true);
+    setError(null);
 
     getDashboard()
       .then((data) => {
-        if (data.children.length > 0) {
-          const mapped = data.children.map(mapApiChild);
+        const list = Array.isArray(data?.children) ? data.children : [];
+        if (list.length > 0) {
+          const mapped = list.map(mapApiChild);
           setChildren(mapped);
           setActiveChildId((prev) => prev || mapped[0].id);
         } else {
           setChildren([]);
         }
       })
-      .catch(() => {})
+      .catch((err: unknown) => {
+        const msg = err instanceof Error ? err.message : "Failed to load dashboard";
+        setError(msg);
+        console.error("[dashboard] fetchDashboard error:", err);
+      })
       .finally(() => {
         setLoading(false);
         setRefreshing(false);
@@ -171,6 +178,8 @@ export default function Home() {
         <motion.p variants={fadeUp} className="mt-1 text-sm text-muted-foreground">
           {loading
             ? "Loading your children…"
+            : error
+            ? "Could not load children — see error below."
             : children.length === 0
             ? "No children linked to your account."
             : "Select a child to view their dashboard."}
@@ -202,6 +211,34 @@ export default function Home() {
               </div>
             ))}
           </div>
+        ) : error ? (
+          /* API error */
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, ease: "easeOut" }}
+            className="flex min-h-[40vh] items-center justify-center"
+          >
+            <div className="flex max-w-sm flex-col items-center gap-5 rounded-2xl border border-destructive/30 bg-card p-10 text-center shadow-[var(--shadow-card)]">
+              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-destructive/10">
+                <RefreshCw className="h-8 w-8 text-destructive" />
+              </div>
+              <div>
+                <h2 className="text-lg font-semibold text-foreground" style={{ fontFamily: "var(--font-dm-sans)" }}>
+                  Could not load children
+                </h2>
+                <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{error}</p>
+              </div>
+              <button
+                onClick={() => fetchDashboard(true)}
+                disabled={refreshing}
+                className="flex items-center gap-2 rounded-xl gradient-brand px-5 py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-60"
+              >
+                <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
+                {refreshing ? "Retrying…" : "Retry"}
+              </button>
+            </div>
+          </motion.div>
         ) : children.length === 0 ? (
           /* No children linked */
           <motion.div

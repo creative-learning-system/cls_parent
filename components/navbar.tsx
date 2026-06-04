@@ -100,7 +100,7 @@ function NotificationsPanel({ onClose }: { onClose: () => void }) {
 
   useEffect(() => {
     getNotifications()
-      .then((d) => setNotifs(d.notifications))
+      .then((d) => setNotifs(Array.isArray(d?.notifications) ? d.notifications : []))
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
@@ -174,7 +174,7 @@ export function Navbar() {
 
   useEffect(() => {
     getNotifications()
-      .then((d) => setUnreadCount(d.notifications.filter((n) => !n.read).length))
+      .then((d) => setUnreadCount((Array.isArray(d?.notifications) ? d.notifications : []).filter((n) => !n.read).length))
       .catch(() => {});
   }, []);
 
