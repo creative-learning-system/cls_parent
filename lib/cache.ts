@@ -1,10 +1,18 @@
-const store = new Map<string, unknown>();
+const TTL_MS = 10 * 60 * 1000; // 10 minutes
+
+interface CacheEntry<T> {
+  value: T;
+  expiresAt: number;
+}
+
+const store = new Map<string, CacheEntry<unknown>>();
 
 export async function fetchCached<T>(key: string, fetcher: () => Promise<T>): Promise<T> {
-  if (store.has(key)) return store.get(key) as T;
-  const result = await fetcher();
-  store.set(key, result);
-  return result;
+  const entry = store.get(key);
+  if (entry && Date.now() < entry.expiresAt) return entry.value as T;
+  const value = await fetcher();
+  store.set(key, { value, expiresAt: Date.now() + TTL_MS });
+  return value;
 }
 
 export function invalidateChild(studentId: number): void {

@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence, type Variants } from "framer-motion";
 import {
   CheckCircle2, TrendingDown, TrendingUp, Lightbulb, MessageSquareText,
-  BookOpen, X, ArrowUpCircle, ShieldOff, ShieldCheck, Send, Loader2,
+  BookOpen, X, ArrowUpCircle, ShieldOff, ShieldCheck, Send, Loader2, RefreshCw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -19,6 +19,7 @@ import {
 } from "@/lib/api";
 import { fetchCached, invalidateChild } from "@/lib/cache";
 import { formatRelativeDate } from "@/lib/utils";
+import { ActivityLogCard } from "@/components/dashboard/activity-log-card";
 
 const fadeUp: Variants = {
   hidden: { opacity: 0, y: 16 },
@@ -28,6 +29,14 @@ const stagger: Variants = {
   hidden: {},
   show:   { transition: { staggerChildren: 0.07 } },
 };
+
+/* ─── Format raw API code → readable title ───────────────── */
+function formatDrillName(raw: string): string {
+  return raw
+    .replace(/_/g, " ")
+    .toLowerCase()
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+}
 
 /* ─── Medal config ───────────────────────────────────────── */
 const medalEmoji = { Bronze: "🥉", Silver: "🥈", Gold: "🥇" };
@@ -72,18 +81,18 @@ function DrillModal({ drill, childName, onClose }: { drill: Drill; childName: st
         </button>
 
         <div className="mb-5 flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[oklch(0.65_0.15_168)]/10 text-sm font-bold text-[oklch(0.55_0.14_168)]">
-            {drill.code}
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[oklch(0.65_0.15_168)]/10 text-xl leading-none">
+            {medalEmoji[drill.medal]}
           </div>
-          <h3 className="text-lg font-semibold text-foreground" style={{ fontFamily: "var(--font-dm-sans)" }}>
-            {drill.name}
+          <h3 className="text-base font-semibold text-foreground" style={{ fontFamily: "var(--font-dm-sans)" }}>
+            {formatDrillName(drill.name || drill.code)}
           </h3>
         </div>
 
         <p className="mb-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
           What this drill tests
         </p>
-        <p className="mb-5 text-sm leading-relaxed text-foreground">{drill.description}</p>
+        <p className="mb-5 text-sm leading-relaxed text-foreground">{formatDrillName(drill.description)}</p>
 
         <div className="flex items-center gap-4 rounded-xl border border-border bg-muted/40 p-4">
           <div className={`flex h-14 w-14 shrink-0 flex-col items-center justify-center rounded-full border-2 ${medalBorder[drill.medal]} bg-card`}>
@@ -296,6 +305,10 @@ export function HomeSection({ child, studentId }: { child: Child; studentId: num
   const [readingEntries, setReadingEntries]   = useState<ReadingEntry[]>([]);
   const [loadingDrills, setLoadingDrills]     = useState(true);
   const [loadingReading, setLoadingReading]   = useState(true);
+  const [errorDrills, setErrorDrills]         = useState(false);
+  const [errorReading, setErrorReading]       = useState(false);
+  const [retryDrills, setRetryDrills]         = useState(0);
+  const [retryReading, setRetryReading]       = useState(0);
 
   const [isSuspended, setIsSuspended]       = useState<boolean | null>(null);
   const [suspendModal, setSuspendModal]     = useState(false);
@@ -311,6 +324,8 @@ export function HomeSection({ child, studentId }: { child: Child; studentId: num
 
     setLoadingDrills(true);
     setLoadingReading(true);
+    setErrorDrills(false);
+    setErrorReading(false);
     setDrillCategories([]);
     setReadingEntries([]);
 
@@ -330,7 +345,7 @@ export function HomeSection({ child, studentId }: { child: Child; studentId: num
           { id: "linguistic", name: "Linguistic Reasoning", icon: "linguistic", drills: data.linguistic_reasoning.map(toDrill) },
         ]);
       })
-      .catch(() => {})
+      .catch(() => { if (!cancelled) setErrorDrills(true); })
       .finally(() => { if (!cancelled) setLoadingDrills(false); });
 
     fetchCached(`c${studentId}:reading-reflections`, () => getReadingReflections(studentId))
@@ -350,7 +365,7 @@ export function HomeSection({ child, studentId }: { child: Child; studentId: num
           })),
         );
       })
-      .catch(() => {})
+      .catch(() => { if (!cancelled) setErrorReading(true); })
       .finally(() => { if (!cancelled) setLoadingReading(false); });
 
     getChildSuspensionStatus(studentId)
@@ -358,7 +373,7 @@ export function HomeSection({ child, studentId }: { child: Child; studentId: num
       .catch(() => {});
 
     return () => { cancelled = true; };
-  }, [studentId, firstName]);
+  }, [studentId, firstName, retryDrills, retryReading]);
 
   async function handleSuspendConfirm() {
     setSuspendLoading(true);
@@ -466,6 +481,16 @@ export function HomeSection({ child, studentId }: { child: Child; studentId: num
         {/* Drill categories */}
         {loadingDrills ? (
           <DrillCategorySkeleton />
+        ) : errorDrills ? (
+          <motion.div variants={fadeUp} className="surface-card flex items-center justify-between gap-4 p-5">
+            <p className="text-sm text-muted-foreground">Could not load drill categories.</p>
+            <button
+              onClick={() => { invalidateChild(studentId); setRetryDrills(r => r + 1); }}
+              className="flex items-center gap-1.5 text-xs font-medium text-[oklch(0.55_0.14_168)] hover:underline shrink-0"
+            >
+              <RefreshCw className="h-3 w-3" /> Retry
+            </button>
+          </motion.div>
         ) : (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             {drillCategories.map((cat) => (
@@ -485,25 +510,27 @@ export function HomeSection({ child, studentId }: { child: Child; studentId: num
                     <button
                       key={drill.id}
                       onClick={() => setDrillModal(drill)}
-                      className={`group relative flex flex-col items-start gap-1.5 rounded-xl border bg-gradient-to-br p-3 text-left transition-all hover:scale-[1.03] hover:shadow-md active:scale-[0.98] ${medalGradient[drill.medal]} ${medalBorder[drill.medal]}`}
+                      className={`group relative flex min-h-[5.5rem] flex-col justify-between rounded-xl border bg-gradient-to-br p-3 text-left transition-all hover:scale-[1.03] hover:shadow-md active:scale-[0.98] ${medalGradient[drill.medal]} ${medalBorder[drill.medal]}`}
                     >
-                      <p className={`text-sm font-extrabold tracking-tight ${medalText[drill.medal]}`}>
-                        {drill.code}
-                      </p>
-                      <div className="flex items-center gap-1">
-                        <span className="text-base leading-none">{medalEmoji[drill.medal]}</span>
-                        <span className={`text-[10px] font-bold ${medalText[drill.medal]}`}>LV{drill.level}</span>
+                      <div className="flex items-start justify-between gap-1">
+                        <p className={`text-[11px] font-bold leading-snug ${medalText[drill.medal]}`}>
+                          {formatDrillName(drill.name || drill.code)}
+                        </p>
+                        <span className="shrink-0 text-base leading-none">{medalEmoji[drill.medal]}</span>
                       </div>
-                      <p className={`text-[9px] font-semibold uppercase tracking-widest ${medalText[drill.medal]}`}>
-                        {drill.medal}
-                      </p>
-                      {drill.trend && (
-                        <span className={`absolute right-2 top-2 text-sm leading-none ${
-                          drill.trend === "promoted" ? "text-[oklch(0.55_0.14_145)]" : "text-[oklch(0.55_0.18_25)]"
-                        }`}>
-                          {drill.trend === "promoted" ? "↑" : "↓"}
+                      <div className="flex items-center gap-1.5">
+                        <span className={`text-[10px] font-bold ${medalText[drill.medal]}`}>LV{drill.level}</span>
+                        <span className={`text-[8px] font-semibold uppercase tracking-wider opacity-70 ${medalText[drill.medal]}`}>
+                          {drill.medal}
                         </span>
-                      )}
+                        {drill.trend && (
+                          <span className={`ml-auto text-sm leading-none ${
+                            drill.trend === "promoted" ? "text-[oklch(0.55_0.14_145)]" : "text-[oklch(0.55_0.18_25)]"
+                          }`}>
+                            {drill.trend === "promoted" ? "↑" : "↓"}
+                          </span>
+                        )}
+                      </div>
                     </button>
                   ))}
                 </div>
@@ -515,6 +542,16 @@ export function HomeSection({ child, studentId }: { child: Child; studentId: num
         {/* Reading activity */}
         {loadingReading ? (
           <ReadingActivitySkeleton />
+        ) : errorReading ? (
+          <motion.div variants={fadeUp} className="surface-card flex items-center justify-between gap-4 p-5">
+            <p className="text-sm text-muted-foreground">Could not load reading activity.</p>
+            <button
+              onClick={() => { invalidateChild(studentId); setRetryReading(r => r + 1); }}
+              className="flex items-center gap-1.5 text-xs font-medium text-[oklch(0.55_0.14_168)] hover:underline shrink-0"
+            >
+              <RefreshCw className="h-3 w-3" /> Retry
+            </button>
+          </motion.div>
         ) : (
           <motion.div variants={fadeUp} className="surface-card p-5">
             <div className="mb-1 flex items-center gap-2">
@@ -550,6 +587,9 @@ export function HomeSection({ child, studentId }: { child: Child; studentId: num
             )}
           </motion.div>
         )}
+
+        {/* Activity log */}
+        <ActivityLogCard studentId={studentId} />
 
         {/* Notifications */}
         <div className="flex flex-col gap-3">

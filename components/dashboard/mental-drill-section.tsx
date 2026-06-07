@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence, type Variants } from "framer-motion";
-import { Brain, CheckCircle2, Clock, TrendingUp, TrendingDown, Heart, Calendar } from "lucide-react";
+import { Brain, CheckCircle2, Clock, TrendingUp, TrendingDown, Heart, Calendar, RefreshCw } from "lucide-react";
 import type { Child } from "@/lib/dashboard-data";
 import {
   getMentalDrills,
@@ -204,14 +204,16 @@ export function MentalDrillSection({ child, studentId }: { child: Child; student
   const [period, setPeriod]   = useState<PeriodFilter>("week");
   const [data, setData]       = useState<MentalDrills | null>(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError]     = useState(false);
   const firstName = child.name.split(" ")[0];
 
   useEffect(() => {
     if (Number.isNaN(studentId)) return;
     setLoading(true);
+    setError(false);
     getMentalDrills(studentId, periodToTimeframe[period])
-      .then(setData)
-      .catch(() => {})
+      .then((d) => { setData(d); })
+      .catch(() => setError(true))
       .finally(() => setLoading(false));
   }, [studentId, period]);
 
@@ -318,6 +320,16 @@ export function MentalDrillSection({ child, studentId }: { child: Child; student
                     <Skeleton className="h-5 w-16 rounded-full" />
                   </div>
                 ))}
+              </div>
+            ) : error ? (
+              <div className="flex items-center justify-between gap-4 rounded-xl border border-border bg-muted/30 px-4 py-3">
+                <p className="text-sm text-muted-foreground">Could not load drill activity.</p>
+                <button
+                  onClick={() => { setError(false); setLoading(true); getMentalDrills(studentId, periodToTimeframe[period]).then(setData).catch(() => setError(true)).finally(() => setLoading(false)); }}
+                  className="flex items-center gap-1.5 text-xs font-medium text-[oklch(0.55_0.14_168)] hover:underline shrink-0"
+                >
+                  <RefreshCw className="h-3 w-3" /> Retry
+                </button>
               </div>
             ) : (
               <PastActivity days={pastDays} />

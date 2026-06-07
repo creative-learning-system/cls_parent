@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { LogOut, X, Bell, MessageSquare, Smartphone, Inbox } from "lucide-react";
+import { LogOut, X, Bell, MessageSquare, Smartphone, Inbox, UserCircle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { clearSession } from "@/lib/auth";
@@ -231,6 +231,17 @@ export function Navbar() {
               )}
             </AnimatePresence>
           </div>
+
+          <span className="h-4 w-px bg-border" />
+
+          <Link
+            href="/profile"
+            className="flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
+            aria-label="My profile"
+          >
+            <UserCircle className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">Profile</span>
+          </Link>
 
           <span className="h-4 w-px bg-border" />
 

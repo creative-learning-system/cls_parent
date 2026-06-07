@@ -4,14 +4,17 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence, type Variants } from "framer-motion";
 import {
   TrendingUp, TrendingDown, Trophy, CheckCircle2, XCircle,
-  Clock, Target, BarChart3, BookMarked,
+  Clock, Target, BarChart3, BookMarked, CalendarDays, ClipboardList, Activity,
 } from "lucide-react";
 import type { Child } from "@/lib/dashboard-data";
 import { getWeeklyCompliance, type WeeklyCompliance, type WeeklyComplianceDay } from "@/lib/api";
 import { fetchCached } from "@/lib/cache";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AcademicProfileCard } from "@/components/dashboard/academic-profile-card";
-import { CurriculumChecklistCard } from "@/components/dashboard/curriculum-checklist-card";
+import { AcademicProfileCard }       from "@/components/dashboard/academic-profile-card";
+import { CurriculumChecklistCard }   from "@/components/dashboard/curriculum-checklist-card";
+import { ReasoningAnalyticsCard }    from "@/components/dashboard/reasoning-analytics-card";
+import { ComplianceHistoryCard }     from "@/components/dashboard/compliance-history-card";
+import { PretestsCard }              from "@/components/dashboard/pretests-card";
 
 const fadeUp: Variants = {
   hidden: { opacity: 0, y: 16 },
@@ -22,12 +25,15 @@ const stagger: Variants = {
   show:   { transition: { staggerChildren: 0.07 } },
 };
 
-type ProgressTab = "weekly" | "academic" | "curriculum";
+type ProgressTab = "weekly" | "academic" | "curriculum" | "analytics" | "history" | "pretests";
 
 const tabs: { key: ProgressTab; label: string; icon: React.ElementType }[] = [
-  { key: "weekly",     label: "Weekly",     icon: BarChart3    },
-  { key: "academic",   label: "Academic",   icon: Trophy       },
-  { key: "curriculum", label: "Curriculum", icon: BookMarked   },
+  { key: "weekly",     label: "Weekly",     icon: BarChart3      },
+  { key: "academic",   label: "Academic",   icon: Trophy         },
+  { key: "curriculum", label: "Curriculum", icon: BookMarked     },
+  { key: "analytics",  label: "Analytics",  icon: Activity       },
+  { key: "history",    label: "History",    icon: CalendarDays   },
+  { key: "pretests",   label: "Pretests",   icon: ClipboardList  },
 ];
 
 /* ─── Day card ───────────────────────────────────────────── */
@@ -312,6 +318,15 @@ export function ProgressSection({ child, studentId }: { child: Child; studentId:
           )}
           {activeTab === "curriculum" && (
             <CurriculumChecklistCard studentId={studentId} />
+          )}
+          {activeTab === "analytics" && (
+            <ReasoningAnalyticsCard studentId={studentId} childName={child.name} />
+          )}
+          {activeTab === "history" && (
+            <ComplianceHistoryCard studentId={studentId} childName={child.name} />
+          )}
+          {activeTab === "pretests" && (
+            <PretestsCard studentId={studentId} childName={child.name} />
           )}
         </motion.div>
       </AnimatePresence>

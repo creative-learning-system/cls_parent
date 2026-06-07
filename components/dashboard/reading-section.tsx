@@ -2,10 +2,10 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence, type Variants } from "framer-motion";
-import { BookOpen, FileText, ChevronDown } from "lucide-react";
+import { BookOpen, FileText, ChevronDown, Compass, RefreshCw } from "lucide-react";
 import type { Child, ReadingEntry, ReadingPart } from "@/lib/dashboard-data";
-import { getReadingReflections } from "@/lib/api";
-import { fetchCached } from "@/lib/cache";
+import { getReadingReflections, getReadingInterests, type ReadingInterests } from "@/lib/api";
+import { fetchCached, invalidateChild } from "@/lib/cache";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatRelativeDate } from "@/lib/utils";
 
@@ -147,6 +147,110 @@ function ReadingEntryCard({ entry, defaultOpen, childName }: { entry: ReadingEnt
   );
 }
 
+/* ─── Career Paths view ──────────────────────────────────── */
+function CareerPathsSkeleton() {
+  return (
+    <div className="flex flex-col gap-4">
+      {[1, 2, 3].map(i => (
+        <div key={i} className="surface-card p-5 flex items-center gap-4">
+          <Skeleton className="h-10 w-10 rounded-xl shrink-0" />
+          <div className="flex-1 flex flex-col gap-2">
+            <Skeleton className="h-4 w-2/5" />
+            <Skeleton className="h-3 w-1/4" />
+          </div>
+          <Skeleton className="h-5 w-14 rounded-full" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function CareerPathsView({ studentId, firstName }: { studentId: number; firstName: string }) {
+  const [data, setData]       = useState<ReadingInterests | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setData(null);
+    fetchCached(`c${studentId}:reading-interests`, () => getReadingInterests(studentId))
+      .then(d  => { if (!cancelled) setData(d); })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [studentId]);
+
+  if (loading) return <CareerPathsSkeleton />;
+
+  const careerPaths = data?.career_paths ?? [];
+  const storyReflections = data?.reflections ?? [];
+
+  if (!data || (careerPaths.length === 0 && storyReflections.length === 0)) {
+    return (
+      <motion.div variants={fadeUp} className="surface-card flex flex-col items-center gap-2 py-12 text-center">
+        <Compass className="h-8 w-8 text-muted-foreground/30" />
+        <p className="text-sm text-muted-foreground">No career paths explored yet by {firstName}.</p>
+      </motion.div>
+    );
+  }
+
+  return (
+    <motion.div variants={stagger} initial="hidden" animate="show" className="flex flex-col gap-5">
+      {careerPaths.length > 0 && (
+        <motion.div variants={fadeUp} className="surface-card p-5">
+          <div className="mb-1 flex items-center gap-2">
+            <Compass className="h-4 w-4 text-[oklch(0.65_0.15_168)]" />
+            <p className="text-sm font-semibold text-foreground">Career Paths Explored</p>
+          </div>
+          <p className="mb-4 text-xs text-muted-foreground">{firstName} has explored these career topics through reading.</p>
+          <div className="flex flex-col divide-y divide-border">
+            {careerPaths.map(cp => (
+              <div key={cp.CareerName} className="flex items-center gap-4 py-3 first:pt-0 last:pb-0">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[oklch(0.65_0.15_168)]/10">
+                  <Compass className="h-4 w-4 text-[oklch(0.55_0.14_168)]" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-foreground">{cp.CareerName}</p>
+                  <p className="text-xs text-muted-foreground">
+                    Last read {formatRelativeDate(cp.LastReadAt)}
+                  </p>
+                </div>
+                <span className="shrink-0 rounded-full bg-[oklch(0.65_0.15_168)]/10 px-2.5 py-1 text-[10px] font-bold text-[oklch(0.50_0.14_168)]">
+                  {cp.StoriesRead} {cp.StoriesRead === 1 ? "story" : "stories"}
+                </span>
+              </div>
+            ))}
+          </div>
+        </motion.div>
+      )}
+
+      {storyReflections.length > 0 && (
+        <motion.div variants={fadeUp} className="surface-card p-5">
+          <div className="mb-1 flex items-center gap-2">
+            <BookOpen className="h-4 w-4 text-[oklch(0.65_0.15_168)]" />
+            <p className="text-sm font-semibold text-foreground">Story Reflections</p>
+          </div>
+          <p className="mb-4 text-xs text-muted-foreground">Short reflections {firstName} wrote after reading stories.</p>
+          <div className="flex flex-col gap-3">
+            {storyReflections.map((r, i) => (
+              <div key={i} className="rounded-xl border border-border bg-muted/30 p-4">
+                <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
+                  <p className="text-sm font-semibold text-foreground">{r.StoryTitle}</p>
+                  <span className="rounded-full bg-[oklch(0.65_0.15_168)]/10 px-2.5 py-0.5 text-[10px] font-semibold text-[oklch(0.50_0.14_168)]">
+                    {r.CareerName}
+                  </span>
+                </div>
+                <p className="text-sm text-muted-foreground leading-relaxed">{r.ReflectionText}</p>
+                <p className="mt-2 text-[10px] text-muted-foreground/60">{formatRelativeDate(r.SubmittedAt)}</p>
+              </div>
+            ))}
+          </div>
+        </motion.div>
+      )}
+    </motion.div>
+  );
+}
+
 /* ─── Reading skeleton ───────────────────────────────────── */
 function ReadingSkeleton() {
   return (
@@ -168,15 +272,21 @@ function ReadingSkeleton() {
 }
 
 /* ─── Reading section ────────────────────────────────────── */
+type ReadingTab = "reflections" | "career-paths";
+
 export function ReadingSection({ child, studentId }: { child: Child; studentId: number }) {
+  const [tab, setTab]           = useState<ReadingTab>("reflections");
   const [entries, setEntries]   = useState<ReadingEntry[]>([]);
   const [loading, setLoading]   = useState(true);
+  const [error, setError]       = useState(false);
+  const [retry, setRetry]       = useState(0);
   const firstName = child.name.split(" ")[0];
 
   useEffect(() => {
     if (Number.isNaN(studentId)) return;
     let cancelled = false;
     setLoading(true);
+    setError(false);
     setEntries([]);
     fetchCached(`c${studentId}:reading-reflections`, () => getReadingReflections(studentId))
       .then((data) => {
@@ -195,10 +305,10 @@ export function ReadingSection({ child, studentId }: { child: Child; studentId: 
           })),
         );
       })
-      .catch(() => {})
+      .catch(() => { if (!cancelled) setError(true); })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
-  }, [studentId]);
+  }, [studentId, retry]);
 
   return (
     <motion.div variants={stagger} initial="hidden" animate="show" className="flex flex-col gap-6">
@@ -208,26 +318,83 @@ export function ReadingSection({ child, studentId }: { child: Child; studentId: 
         <div className="flex items-center gap-2">
           <BookOpen className="h-4 w-4 text-[oklch(0.65_0.15_168)]" />
           <h3 className="text-base font-semibold text-foreground" style={{ fontFamily: "var(--font-dm-sans)" }}>
-            Reading Understanding
+            Reading
           </h3>
         </div>
         <p className="mt-0.5 text-sm text-muted-foreground">
-          {child.name}&apos;s latest reading and what {firstName} wrote
+          {child.name}&apos;s reading reflections and career paths explored
         </p>
       </motion.div>
 
-      {loading ? (
-        <ReadingSkeleton />
-      ) : entries.length === 0 ? (
-        <motion.div variants={fadeUp} className="surface-card flex flex-col items-center gap-2 py-12 text-center">
-          <BookOpen className="h-8 w-8 text-muted-foreground/30" />
-          <p className="text-sm text-muted-foreground">No reading reflections yet.</p>
+      {/* Sub-tab bar */}
+      <motion.div variants={fadeUp} className="flex gap-1.5 rounded-2xl bg-muted p-1.5">
+        {([
+          { key: "reflections",  label: "Reflections",  icon: FileText  },
+          { key: "career-paths", label: "Career Paths", icon: Compass   },
+        ] as { key: ReadingTab; label: string; icon: React.ElementType }[]).map(({ key, label, icon: Icon }) => {
+          const isActive = tab === key;
+          return (
+            <button
+              key={key}
+              onClick={() => setTab(key)}
+              className={`relative flex flex-1 items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-xs font-medium transition-colors ${
+                isActive ? "text-white" : "text-muted-foreground hover:bg-background hover:text-foreground"
+              }`}
+            >
+              {isActive && (
+                <motion.span
+                  layoutId="reading-tab-pill"
+                  className="absolute inset-0 rounded-xl gradient-brand"
+                  transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                />
+              )}
+              <Icon className="relative h-3.5 w-3.5" />
+              <span className="relative">{label}</span>
+            </button>
+          );
+        })}
+      </motion.div>
+
+      {/* Tab content */}
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={tab}
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -4 }}
+          transition={{ duration: 0.2 }}
+        >
+          {tab === "reflections" && (
+            loading ? (
+              <ReadingSkeleton />
+            ) : error ? (
+              <div className="surface-card flex items-center justify-between gap-4 p-5">
+                <p className="text-sm text-muted-foreground">Could not load reading reflections.</p>
+                <button
+                  onClick={() => { invalidateChild(studentId); setRetry(r => r + 1); }}
+                  className="flex items-center gap-1.5 text-xs font-medium text-[oklch(0.55_0.14_168)] hover:underline shrink-0"
+                >
+                  <RefreshCw className="h-3 w-3" /> Retry
+                </button>
+              </div>
+            ) : entries.length === 0 ? (
+              <div className="surface-card flex flex-col items-center gap-2 py-12 text-center">
+                <BookOpen className="h-8 w-8 text-muted-foreground/30" />
+                <p className="text-sm text-muted-foreground">No reading reflections yet.</p>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-4">
+                {entries.map((entry, i) => (
+                  <ReadingEntryCard key={entry.id} entry={entry} defaultOpen={i === 0} childName={firstName} />
+                ))}
+              </div>
+            )
+          )}
+          {tab === "career-paths" && (
+            <CareerPathsView studentId={studentId} firstName={firstName} />
+          )}
         </motion.div>
-      ) : (
-        entries.map((entry, i) => (
-          <ReadingEntryCard key={entry.id} entry={entry} defaultOpen={i === 0} childName={firstName} />
-        ))
-      )}
+      </AnimatePresence>
 
     </motion.div>
   );

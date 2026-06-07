@@ -366,8 +366,25 @@ export function getReadingReflections(studentId: number) {
   return apiFetch<ReadingReflections>(`/api/parent/child/${studentId}/reading-reflections`);
 }
 
+/* ─── Activity Log ───────────────────────────────────────── */
+
+export interface ActivityEntry {
+  id: number;
+  type: "drill" | "reflection" | "pretest" | string;
+  title: string;
+  description?: string;
+  timestamp: string;
+  score?: string;
+  accuracy?: number;
+}
+
+export interface ActivityLog {
+  student_id: number;
+  activities: ActivityEntry[];
+}
+
 export function getActivityLog(studentId: number) {
-  return apiFetch<Record<string, unknown>>(`/api/parent/child/${studentId}/activity-log`);
+  return apiFetch<ActivityLog>(`/api/parent/child/${studentId}/activity-log`);
 }
 
 /* ─── Suspension – Parent ────────────────────────────────── */

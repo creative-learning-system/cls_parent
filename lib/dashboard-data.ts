@@ -94,7 +94,8 @@ export interface Child {
   messages: Record<string, Message[]>;
 }
 
-/* ─── Mock data ──────────────────────────────────────────── */
+/* ─── No mock data — all data fetched from API ───────────── */
+// Kept as empty export to avoid breaking any future imports
 export const children: Child[] = [
   {
     id: "co",
