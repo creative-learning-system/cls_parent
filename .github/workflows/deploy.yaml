@@ -1,0 +1,78 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+      - dev
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      image_tag: ${{ steps.vars.outputs.image_tag }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Prepare Image tag
+        id: vars
+        run: |
+          SHORT_SHA=${GITHUB_SHA::7}
+          BRANCH=${GITHUB_REF_NAME}
+          if [ "${BRANCH}" = "main" ]; then
+            ENV_PREFIX="prod"
+          elif [ "${BRANCH}" = "dev" ]; then
+            ENV_PREFIX="dev"
+          else
+            echo "Unsupported branch ${BRANCH}"
+            exit 1
+          fi
+          TAG="dkantares/cls-parent:${ENV_PREFIX}-${SHORT_SHA}"
+          LATEST="dkantares/cls-parent:${ENV_PREFIX}-latest"
+          echo "short_sha=${SHORT_SHA}" >> $GITHUB_OUTPUT
+          echo "env_prefix=${ENV_PREFIX}" >> $GITHUB_OUTPUT
+          echo "image_tag=${TAG}" >> $GITHUB_OUTPUT
+          echo "latest_tag=${LATEST}" >> $GITHUB_OUTPUT
+          echo "deploy_tag=${ENV_PREFIX}-${SHORT_SHA}" >> $GITHUB_OUTPUT
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Build and Push Docker Image
+        uses: docker/build-push-action@v3
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: |
+            ${{ steps.vars.outputs.image_tag }}
+            ${{ steps.vars.outputs.latest_tag }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # Tells Dokploy which tag to pull for this environment. The webhook
+      # URLs are per-environment deploy triggers (bearer-token-equivalent
+      # in the URL itself), so they live in repo secrets rather than here —
+      # see DEV_DEPLOY_WEBHOOK_URL / PROD_DEPLOY_WEBHOOK_URL in the repo's
+      # Actions secrets.
+      - name: Trigger deployment webhook
+        run: |
+          if [ "${{ steps.vars.outputs.env_prefix }}" = "prod" ]; then
+            WEBHOOK_URL="${{ secrets.PROD_DEPLOY_WEBHOOK_URL }}"
+          else
+            WEBHOOK_URL="${{ secrets.DEV_DEPLOY_WEBHOOK_URL }}"
+          fi
+          curl -fsS -X POST "${WEBHOOK_URL}?tag=${{ steps.vars.outputs.deploy_tag }}"

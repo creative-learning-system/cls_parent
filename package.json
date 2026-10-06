@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "docker:build": "docker build --no-cache -t dkantares/cls-parent:prod-latest ."
+
   },
   "dependencies": {
     "class-variance-authority": "^0.7.1",
