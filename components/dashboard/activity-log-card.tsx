@@ -25,6 +25,13 @@ function typeConfig(type: string) {
         badge: "bg-[oklch(0.65_0.15_168)]/10 text-[oklch(0.50_0.14_168)]",
         label: "Drill",
       };
+    case "reading":
+      return {
+        icon: <BookOpen className="h-4 w-4 text-[oklch(0.55_0.14_168)]" />,
+        bg:   "bg-[oklch(0.65_0.15_168)]/10",
+        badge: "bg-[oklch(0.65_0.15_168)]/10 text-[oklch(0.50_0.14_168)]",
+        label: "Reading",
+      };
     case "reflection":
       return {
         icon: <BookOpen className="h-4 w-4 text-[oklch(0.45_0.14_145)]" />,
@@ -92,7 +99,7 @@ function LoadingSkeleton() {
   );
 }
 
-export function ActivityLogCard({ studentId }: { studentId: number }) {
+export function ActivityLogCard({ studentId }: { studentId: string }) {
   const [log, setLog]         = useState<ActivityLog | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState(false);
@@ -129,7 +136,7 @@ export function ActivityLogCard({ studentId }: { studentId: number }) {
         <Activity className="h-4 w-4 text-[oklch(0.65_0.15_168)]" />
         <p className="text-sm font-semibold text-foreground">Recent Activity</p>
       </div>
-      <p className="mb-4 text-xs text-muted-foreground">Drills, reflections and pretests — most recent first.</p>
+      <p className="mb-4 text-xs text-muted-foreground">Drills, reading and reflections — most recent first.</p>
       {activities.map((entry) => (
         <ActivityRow key={entry.id} entry={entry} />
       ))}

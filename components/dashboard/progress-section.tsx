@@ -244,13 +244,13 @@ function WeeklyComplianceSkeleton() {
 }
 
 /* ─── Progress Section ───────────────────────────────────── */
-export function ProgressSection({ child, studentId }: { child: Child; studentId: number }) {
+export function ProgressSection({ child, studentId }: { child: Child; studentId: string }) {
   const [activeTab, setActiveTab]         = useState<ProgressTab>("weekly");
   const [compliance, setCompliance]       = useState<WeeklyCompliance | null>(null);
   const [loadingWeekly, setLoadingWeekly] = useState(true);
 
   useEffect(() => {
-    if (Number.isNaN(studentId)) return;
+    if (!studentId) return;
     let cancelled = false;
     setLoadingWeekly(true);
     setCompliance(null);

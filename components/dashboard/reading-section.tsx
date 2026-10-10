@@ -165,7 +165,7 @@ function CareerPathsSkeleton() {
   );
 }
 
-function CareerPathsView({ studentId, firstName }: { studentId: number; firstName: string }) {
+function CareerPathsView({ studentId, firstName }: { studentId: string; firstName: string }) {
   const [data, setData]       = useState<ReadingInterests | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -274,7 +274,7 @@ function ReadingSkeleton() {
 /* ─── Reading section ────────────────────────────────────── */
 type ReadingTab = "reflections" | "career-paths";
 
-export function ReadingSection({ child, studentId }: { child: Child; studentId: number }) {
+export function ReadingSection({ child, studentId }: { child: Child; studentId: string }) {
   const [tab, setTab]           = useState<ReadingTab>("reflections");
   const [entries, setEntries]   = useState<ReadingEntry[]>([]);
   const [loading, setLoading]   = useState(true);
@@ -283,7 +283,7 @@ export function ReadingSection({ child, studentId }: { child: Child; studentId: 
   const firstName = child.name.split(" ")[0];
 
   useEffect(() => {
-    if (Number.isNaN(studentId)) return;
+    if (!studentId) return;
     let cancelled = false;
     setLoading(true);
     setError(false);

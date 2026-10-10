@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Eye, EyeOff, Lock, CheckCircle2, ArrowLeft } from "lucide-react";
 import Link from "next/link";
+import { resetPassword } from "@/lib/auth";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 20 },
@@ -94,11 +95,21 @@ export default function ResetPasswordPage() {
     setError("");
     if (password !== confirm) { setError("Passwords do not match."); return; }
     if (password.length < 8)  { setError("Password must be at least 8 characters."); return; }
+
+    // The API's reset link redirects here with ?token=… (or ?error=INVALID_TOKEN)
+    const token = new URLSearchParams(window.location.search).get("token");
+    if (!token) { setError("This reset link is invalid or has expired. Please request a new one."); return; }
+
     setLoading(true);
-    await new Promise((r) => setTimeout(r, 900));
-    setDone(true);
-    setLoading(false);
-    setTimeout(() => router.push("/login"), 2500);
+    try {
+      await resetPassword(token, password);
+      setDone(true);
+      setTimeout(() => router.push("/login"), 2500);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not reset password.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (

@@ -200,7 +200,7 @@ function PastActivity({ days }: { days: MentalDrillsDay[] }) {
 }
 
 /* ─── Mental Drill Section ───────────────────────────────── */
-export function MentalDrillSection({ child, studentId }: { child: Child; studentId: number }) {
+export function MentalDrillSection({ child, studentId }: { child: Child; studentId: string }) {
   const [period, setPeriod]   = useState<PeriodFilter>("week");
   const [data, setData]       = useState<MentalDrills | null>(null);
   const [loading, setLoading] = useState(false);
@@ -208,7 +208,7 @@ export function MentalDrillSection({ child, studentId }: { child: Child; student
   const firstName = child.name.split(" ")[0];
 
   useEffect(() => {
-    if (Number.isNaN(studentId)) return;
+    if (!studentId) return;
     setLoading(true);
     setError(false);
     getMentalDrills(studentId, periodToTimeframe[period])

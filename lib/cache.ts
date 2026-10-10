@@ -15,8 +15,16 @@ export async function fetchCached<T>(key: string, fetcher: () => Promise<T>): Pr
   return value;
 }
 
-export function invalidateChild(studentId: number): void {
+export function invalidate(key: string): void {
+  store.delete(key);
+}
+
+export function invalidateChild(studentId: string): void {
   for (const key of store.keys()) {
     if (key.startsWith(`c${studentId}:`)) store.delete(key);
   }
+}
+
+export function clearCache(): void {
+  store.clear();
 }

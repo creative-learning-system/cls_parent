@@ -63,7 +63,7 @@ function LoadingSkeleton() {
   );
 }
 
-export function ComplianceHistoryCard({ studentId, childName }: { studentId: number; childName: string }) {
+export function ComplianceHistoryCard({ studentId, childName }: { studentId: string; childName: string }) {
   const [days, setDays]       = useState<ComplianceDay[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState(false);

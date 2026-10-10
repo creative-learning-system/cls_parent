@@ -4,6 +4,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { Mail, ArrowLeft, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
+import { requestPasswordReset } from "@/lib/auth";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 20 },
@@ -18,13 +19,20 @@ export default function ForgotPasswordPage() {
   const [email, setEmail]     = useState("");
   const [sent, setSent]       = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError]     = useState("");
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    setError("");
     setLoading(true);
-    await new Promise((r) => setTimeout(r, 900));
-    setSent(true);
-    setLoading(false);
+    try {
+      await requestPasswordReset(email);
+      setSent(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not send reset link.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -80,6 +88,12 @@ export default function ForgotPasswordPage() {
                   />
                 </div>
               </div>
+
+              {error && (
+                <p className="rounded-lg bg-[oklch(0.95_0.07_25)] px-4 py-2.5 text-xs font-medium text-[oklch(0.50_0.18_25)]">
+                  {error}
+                </p>
+              )}
 
               <button
                 type="submit"

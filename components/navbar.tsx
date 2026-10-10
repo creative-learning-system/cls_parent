@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { LogOut, X, Bell, MessageSquare, Smartphone, Inbox, UserCircle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { clearSession } from "@/lib/auth";
+import { logout } from "@/lib/auth";
 import { getNotifications, type Notification as ApiNotification } from "@/lib/api";
 
 /* ─── Logout modal ───────────────────────────────────────── */
@@ -179,7 +179,7 @@ export function Navbar() {
   }, []);
 
   function confirmLogout() {
-    clearSession();
+    logout();
     router.push("/login");
   }
 

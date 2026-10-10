@@ -55,7 +55,7 @@ function LoadingSkeleton() {
   );
 }
 
-export function ReasoningAnalyticsCard({ studentId, childName }: { studentId: number; childName: string }) {
+export function ReasoningAnalyticsCard({ studentId, childName }: { studentId: string; childName: string }) {
   const [data, setData]       = useState<ReasoningAnalytics | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState(false);
@@ -168,10 +168,11 @@ export function ReasoningAnalyticsCard({ studentId, childName }: { studentId: nu
                   }
                   <div className="flex-1 min-w-0">
                     <p className={`text-sm font-semibold ${isPromotion ? "text-[oklch(0.40_0.14_145)]" : "text-[oklch(0.50_0.12_75)]"}`}>
-                      {h.ChangeType} — Drill Type {h.DrillTypeID}
+                      {h.ChangeType} — {h.DrillType} Reasoning
                     </p>
                     <p className="text-xs text-muted-foreground">
                       Level {h.OldLevel} → Level {h.NewLevel}
+                      {h.Source === "manual" && " · set by school"}
                     </p>
                   </div>
                   <p className="text-[10px] text-muted-foreground shrink-0">

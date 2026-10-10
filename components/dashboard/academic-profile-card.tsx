@@ -59,7 +59,7 @@ function LoadingSkeleton() {
   );
 }
 
-export function AcademicProfileCard({ studentId, childName }: { studentId: number; childName: string }) {
+export function AcademicProfileCard({ studentId, childName }: { studentId: string; childName: string }) {
   const [data, setData]       = useState<AcademicProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState(false);

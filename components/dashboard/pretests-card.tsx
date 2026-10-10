@@ -122,7 +122,7 @@ function LoadingSkeleton() {
   );
 }
 
-export function PretestsCard({ studentId, childName }: { studentId: number; childName: string }) {
+export function PretestsCard({ studentId, childName }: { studentId: string; childName: string }) {
   const [pretests, setPretests] = useState<PretestResult[]>([]);
   const [loading, setLoading]   = useState(true);
   const [error, setError]       = useState(false);

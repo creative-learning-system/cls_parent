@@ -154,7 +154,7 @@ function LoadingSkeleton() {
   );
 }
 
-export function CurriculumChecklistCard({ studentId }: { studentId: number }) {
+export function CurriculumChecklistCard({ studentId }: { studentId: string }) {
   const [data, setData]       = useState<CurriculumChecklist | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState(false);

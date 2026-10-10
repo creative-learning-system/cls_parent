@@ -63,7 +63,7 @@ function mapApiChild(apiChild: DashboardChild): Child {
   const notifications: Child["notifications"] = apiChild.recent_achievements.map((a) => ({
     color: a.ChangeType === "Promotion" ? "success" : "amber",
     title: `${a.ChangeType} to Level ${a.NewLevel}`,
-    sub: `Drill type ${a.DrillTypeID} · ${new Date(a.ChangedAt).toLocaleDateString()}`,
+    sub: `${a.DrillType} reasoning · ${new Date(a.ChangedAt).toLocaleDateString()}`,
   }));
 
   if (!compliance.LogicalTargetMet) {
@@ -158,7 +158,7 @@ export default function Home() {
   }, []);
 
   const child = children.find((c) => c.id === activeChildId) ?? children[0];
-  const studentId = child ? Number(child.id) : NaN;
+  const studentId = child?.id ?? "";
 
   return (
     <div className="mx-auto w-full max-w-5xl px-5 pt-28 pb-14 md:px-8">

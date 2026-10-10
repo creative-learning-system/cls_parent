@@ -297,7 +297,7 @@ function ReadingActivitySkeleton() {
 }
 
 /* ─── Home section ───────────────────────────────────────── */
-export function HomeSection({ child, studentId }: { child: Child; studentId: number }) {
+export function HomeSection({ child, studentId }: { child: Child; studentId: string }) {
   const [drillModal, setDrillModal]     = useState<Drill | null>(null);
   const [readingModal, setReadingModal] = useState<ReadingEntry | null>(null);
 
@@ -319,7 +319,7 @@ export function HomeSection({ child, studentId }: { child: Child; studentId: num
   const firstName = child.name.split(" ")[0];
 
   useEffect(() => {
-    if (Number.isNaN(studentId)) return;
+    if (!studentId) return;
     let cancelled = false;
 
     setLoadingDrills(true);
