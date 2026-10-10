@@ -20,11 +20,6 @@ interface ApiAuthUser {
   role?: string;
 }
 
-export function getAccessToken(): string | null {
-  if (typeof window === "undefined") return null;
-  return localStorage.getItem("access_token");
-}
-
 export function getUser(): AuthUser | null {
   if (typeof window === "undefined") return null;
   const raw = localStorage.getItem("auth_user");
@@ -32,17 +27,21 @@ export function getUser(): AuthUser | null {
   try { return JSON.parse(raw); } catch { return null; }
 }
 
+/*
+ * The API authenticates with an HttpOnly session cookie (it ignores bearer
+ * tokens), so the stored user only tells the UI a session probably exists;
+ * a 401 from the API is the real check.
+ */
 export function isAuthenticated(): boolean {
-  return !!getAccessToken();
+  return !!getUser();
 }
 
-export function saveSession(token: string, user: AuthUser) {
-  localStorage.setItem("access_token", token);
+export function saveSession(user: AuthUser) {
   localStorage.setItem("auth_user", JSON.stringify(user));
 }
 
 export function clearSession() {
-  localStorage.removeItem("access_token");
+  localStorage.removeItem("access_token");  // left over from the old backend
   localStorage.removeItem("refresh_token"); // left over from the old backend
   localStorage.removeItem("auth_user");
   localStorage.removeItem("parent_id");
@@ -60,13 +59,11 @@ export async function readError(res: Response, fallback: string): Promise<string
   return fallback;
 }
 
-function authFetch(path: string, body: unknown, token?: string | null) {
+function authFetch(path: string, body: unknown) {
   return fetch(`${API_URL}${path}`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
 }
@@ -74,7 +71,7 @@ function authFetch(path: string, body: unknown, token?: string | null) {
 export async function login(email: string, password: string): Promise<AuthUser> {
   const res = await authFetch("/api/auth/sign-in/email", { email, password });
   if (!res.ok) throw new Error(await readError(res, "Invalid email or password."));
-  const { token, user } = (await res.json()) as { token: string; user: ApiAuthUser };
+  const { user } = (await res.json()) as { user: ApiAuthUser };
   const authUser: AuthUser = {
     id:                      user.id,
     email:                   user.email,
@@ -82,28 +79,23 @@ export async function login(email: string, password: string): Promise<AuthUser> 
     full_name:               user.name,
     require_password_change: false,
   };
-  saveSession(token, authUser);
+  saveSession(authUser);
   return authUser;
 }
 
 export async function logout(): Promise<void> {
-  const token = getAccessToken();
   clearSession();
-  // Revoke the session server-side; the local session is already gone either way.
-  if (token) await authFetch("/api/auth/sign-out", {}, token).catch(() => {});
+  // Revoke the session (and its cookie) server-side; the local session is already gone either way.
+  await authFetch("/api/auth/sign-out", {}).catch(() => {});
 }
 
 export async function changePassword(currentPassword: string, newPassword: string): Promise<void> {
-  const res = await authFetch(
-    "/api/auth/change-password",
-    { currentPassword, newPassword, revokeOtherSessions: false },
-    getAccessToken(),
-  );
+  const res = await authFetch("/api/auth/change-password", {
+    currentPassword,
+    newPassword,
+    revokeOtherSessions: false,
+  });
   if (!res.ok) throw new Error(await readError(res, "Password change failed"));
-
-  // A new token is only issued when other sessions are revoked
-  const json = (await res.json().catch(() => null)) as { token?: string | null } | null;
-  if (json?.token) localStorage.setItem("access_token", json.token);
 
   // Update the stored user to clear the require_password_change flag
   const user = getUser();

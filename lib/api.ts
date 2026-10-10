@@ -1,4 +1,4 @@
-import { API_URL, getAccessToken, getUser, clearSession, readError } from "./auth";
+import { API_URL, getUser, clearSession, readError } from "./auth";
 import { fetchCached, invalidate } from "./cache";
 
 /*
@@ -11,12 +11,11 @@ import { fetchCached, invalidate } from "./cache";
  */
 
 async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
-  const token = getAccessToken();
   const res = await fetch(`${API_URL}${path}`, {
     ...options,
+    credentials: "include", // the API authenticates with a session cookie
     headers: {
       "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...options?.headers,
     },
   });
