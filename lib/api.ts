@@ -154,7 +154,6 @@ interface ApiComprehension {
 
 interface ApiCareerPath {
   id: string;
-  part: Part;
   title: string;
   status: "draft" | "published" | "archived";
   topicId: string;
@@ -548,28 +547,33 @@ export async function getReadingInterests(studentId: string): Promise<ReadingInt
   ]);
   const completed = sessions.filter((s) => s.status === "completed");
 
-  // Career paths are attached to a topic part; collect them for every topic the child read (most recent 30)
+  // Career paths belong to a whole topic (no longer to one reading part); collect them for every topic the child read (most recent 30)
   const topicIds = [...new Set(completed.map((s) => s.topicId))].slice(0, 30);
   const careerLists = await Promise.all(
     topicIds.map((topicId) => getPage<ApiCareerPath>("/career-paths", { topicId }).then((r) => r.data)),
   );
   const careers = careerLists.flat().filter((c) => c.status !== "draft");
-  const careersFor = (topicId: string, part: Part) =>
-    careers.filter((c) => c.topicId === topicId && c.part === part);
+  const careersFor = (topicId: string) => careers.filter((c) => c.topicId === topicId);
 
+  // A topic has up to three reading parts, all sharing the topic's careers, so
+  // count distinct topics (stories) per career rather than completed parts.
   const byCareer = new Map<string, CareerPath>();
+  const topicsByCareer = new Map<string, Set<string>>();
   for (const s of completed) {
     const readAt = s.completedAt ?? s.startedAt;
-    for (const c of careersFor(s.topicId, s.part)) {
+    for (const c of careersFor(s.topicId)) {
       const entry = byCareer.get(c.title) ?? { CareerName: c.title, StoriesRead: 0, LastReadAt: readAt };
-      entry.StoriesRead += 1;
+      const topics = topicsByCareer.get(c.title) ?? new Set<string>();
+      topics.add(s.topicId);
+      topicsByCareer.set(c.title, topics);
+      entry.StoriesRead = topics.size;
       if (readAt > entry.LastReadAt) entry.LastReadAt = readAt;
       byCareer.set(c.title, entry);
     }
   }
 
   const storyReflections: StoryReflection[] = reflections.flatMap((r) => {
-    const titles = careersFor(r.topicId, r.part).map((c) => c.title);
+    const titles = careersFor(r.topicId).map((c) => c.title);
     if (titles.length === 0) return [];
     return [{
       StoryTitle:     `${r.topic?.name ?? "Story"} · Part ${partNumber(r.part)}`,
