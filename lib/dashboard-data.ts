@@ -78,6 +78,7 @@ export interface Child {
   id: string;
   initials: string;
   name: string;
+  username?: string; // the child's login username
   grade: string;
   level: string;
   tag: string;

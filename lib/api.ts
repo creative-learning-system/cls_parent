@@ -54,6 +54,7 @@ interface Paged<T> {
 interface ApiParentChild {
   id: string;
   fullName: string;
+  username: string;
   className: string | null;
   section: string | null;
   relationship: string;
@@ -309,6 +310,7 @@ export interface RecentAchievement {
 export interface DashboardChild {
   student_id: string;
   full_name: string;
+  username: string;
   class_info: string;
   reasoning_levels: ReasoningLevel[];
   today_compliance: TodayCompliance;
@@ -478,6 +480,7 @@ async function buildDashboardChild(child: ApiParentChild): Promise<DashboardChil
   return {
     student_id:  child.id,
     full_name:   child.fullName,
+    username:    child.username,
     class_info:  classInfo(child),
     reasoning_levels: levels,
     today_compliance: {

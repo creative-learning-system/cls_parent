@@ -430,7 +430,10 @@ export function HomeSection({ child, studentId }: { child: Child; studentId: str
               )}
             </div>
 
-            <p className="text-sm text-muted-foreground">{child.grade} · {child.level}</p>
+            <p className="text-sm text-muted-foreground">
+              {child.username && <>Username <span className="font-medium text-foreground">@{child.username}</span> · </>}
+              {child.grade} · {child.level}
+            </p>
 
             <div className="flex flex-wrap gap-2">
               {child.subjects.map((s) => (

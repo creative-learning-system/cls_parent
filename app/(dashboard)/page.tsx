@@ -88,6 +88,7 @@ function mapApiChild(apiChild: DashboardChild): Child {
     id:             String(apiChild.student_id),
     initials,
     name:           apiChild.full_name,
+    username:       apiChild.username,
     grade:          apiChild.class_info,
     level:          primaryLevel?.LevelName ?? apiChild.class_info,
     tag,
@@ -303,6 +304,7 @@ export default function Home() {
                   </div>
                   <div className="relative min-w-0">
                     <p className="truncate text-sm font-semibold text-foreground">{c.name}</p>
+                    {c.username && <p className="truncate text-xs text-muted-foreground">@{c.username}</p>}
                     <p className="text-xs text-muted-foreground">{c.grade}</p>
                     <span className={`mt-1.5 inline-block ${c.tagColor === "amber" ? "badge-amber" : "badge-brand"}`}>
                       {c.level}
