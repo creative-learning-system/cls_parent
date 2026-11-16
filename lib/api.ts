@@ -1,4 +1,4 @@
-import { API_URL, getUser, clearSession, readError } from "./auth";
+import { API_URL, clearSession, readError } from "./auth";
 import { fetchCached, invalidate } from "./cache";
 
 /*
@@ -10,6 +10,12 @@ import { fetchCached, invalidate } from "./cache";
  * is still missing.
  */
 
+function signedOut(): never {
+  clearSession();
+  if (typeof window !== "undefined") window.location.href = "/login";
+  throw new Error("Unauthorized");
+}
+
 async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
   const res = await fetch(`${API_URL}${path}`, {
     ...options,
@@ -20,11 +26,7 @@ async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
     },
   });
 
-  if (res.status === 401) {
-    clearSession();
-    if (typeof window !== "undefined") window.location.href = "/login";
-    throw new Error("Unauthorized");
-  }
+  if (res.status === 401) signedOut();
 
   if (!res.ok) throw new Error(await readError(res, `Request failed: ${res.status}`));
 
@@ -238,26 +240,14 @@ function partNumber(part: Part): number {
   return Number(part.slice(-1));
 }
 
-/*
- * The API has no parent self-lookup yet (API_GAP_ANALYSIS.md, M1). Try
- * /parents/me in case it ships, then fall back to matching the signed-in user
- * against Parent.authUserId. The fallback only works if the parent role may list parents.
- */
+/* A parent's session carries their own parent record id (`user.parent.id`). */
 async function resolveParentId(): Promise<string> {
   const stored = localStorage.getItem("parent_id");
   if (stored) return stored;
 
-  const user = getUser();
-  if (!user) throw new Error("Not signed in");
-
-  let id: string | undefined;
-  try {
-    id = (await apiFetch<ApiParent>("/parents/me")).id;
-  } catch {}
-  if (!id) {
-    const { items } = await fetchAll<ApiParent>("/parents", {}, 50);
-    id = items.find((p) => p.authUserId === user.id)?.id;
-  }
+  const session = await apiFetch<{ user?: { parent?: { id: string } | null } } | null>("/api/auth/get-session");
+  if (!session) signedOut(); // get-session answers 200 + null when the cookie is missing or expired
+  const id = session.user?.parent?.id;
   if (!id) throw new Error("No parent account is linked to this login.");
 
   localStorage.setItem("parent_id", id);
